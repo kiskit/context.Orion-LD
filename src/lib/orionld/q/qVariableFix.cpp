@@ -97,7 +97,7 @@ char* qVariableFix(char* varPathIn, bool forDb, bool* isMdP, char** detailsP)
     {
       if (startBracketP != NULL)
       {
-        *detailsP = (char*) "More than one start brackets found";
+        *detailsP = (char*) "More than one opening brackets found";
         return NULL;
       }
       startBracketP  = cP;
@@ -106,7 +106,7 @@ char* qVariableFix(char* varPathIn, bool forDb, bool* isMdP, char** detailsP)
     {
       if (endBracketP != NULL)
       {
-        *detailsP = (char*) "More than one end brackets found";
+        *detailsP = (char*) "More than one closing brackets found";
         return NULL;
       }
       endBracketP = cP;
@@ -121,19 +121,19 @@ char* qVariableFix(char* varPathIn, bool forDb, bool* isMdP, char** detailsP)
   //
   if ((startBracketP != NULL) && (endBracketP == NULL))
   {
-    *detailsP = (char*) "missing end bracket";
+    *detailsP = (char*) "missing closing bracket";
     LM_W(("Bad Input (%s)", *detailsP));
     return NULL;
   }
   else if ((startBracketP == NULL) && (endBracketP != NULL))
   {
-    *detailsP = (char*) "end bracket but no start bracket";
+    *detailsP = (char*) "closing bracket but no opening bracket";
     LM_W(("Bad Input (%s)", *detailsP));
     return NULL;
   }
   else if ((firstDotP != NULL) && (startBracketP != NULL) && (firstDotP < startBracketP))
   {
-    *detailsP = (char*) "found a dot before a start bracket";
+    *detailsP = (char*) "found a dot before an opening bracket";
     LM_W(("Bad Input (%s)", *detailsP));
     return NULL;
   }

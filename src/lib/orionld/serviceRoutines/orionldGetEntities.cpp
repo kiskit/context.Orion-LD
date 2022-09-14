@@ -54,210 +54,244 @@ extern "C"
 #include "orionld/payloadCheck/pCheckGeoCoordinates.h"           // pCheckGeoCoordinates
 #include "orionld/serviceRoutines/orionldGetEntities.h"          // Own interface
 
-
-
+#include "orionld/betterq/QueryLexer.h"
+#include "orionld/betterq/QueryParser.h"
+#include "orionld/betterq/QueryConcreteListener.h"
+#include "orionld/betterq/QPrint.h"
+#include <boost/algorithm/string/replace.hpp>
 // -----------------------------------------------------------------------------
 //
 // geoCheck -
 //
-static bool geoCheck(OrionldGeoInfo* geoInfoP)
-{
-  bzero(geoInfoP, sizeof(OrionldGeoInfo));
+static bool geoCheck(OrionldGeoInfo *geoInfoP) {
+    bzero(geoInfoP, sizeof(OrionldGeoInfo));
 
-  if ((orionldState.uriParams.geometry    != NULL) ||
-      (orionldState.uriParams.georel      != NULL) ||
-      (orionldState.uriParams.coordinates != NULL) ||
-      (orionldState.uriParams.geoproperty != NULL))
-  {
-    //
-    // geometry
-    //
-    if (orionldState.uriParams.geometry == NULL)
-    {
-      orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "missing: geometry", 400);
-      return false;
+    if ((orionldState.uriParams.geometry != NULL) ||
+        (orionldState.uriParams.georel != NULL) ||
+        (orionldState.uriParams.coordinates != NULL) ||
+        (orionldState.uriParams.geoproperty != NULL)) {
+        //
+        // geometry
+        //
+        if (orionldState.uriParams.geometry == NULL) {
+            orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "missing: geometry", 400);
+            return false;
+        }
+        if (pCheckGeometry(orionldState.uriParams.geometry, &geoInfoP->geometry, false) == false)
+            return false;
+
+        //
+        // georel
+        //
+        if (orionldState.uriParams.georel == NULL) {
+            orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "missing: georel", 400);
+            return false;
+        }
+
+        if (pCheckGeorelString(orionldState.uriParams.georel, geoInfoP) == false)
+            return false;
+
+        //
+        // coordinates
+        //
+        if (orionldState.uriParams.coordinates == NULL) {
+            orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "missing: coordinates", 400);
+            return false;
+        }
+
+        urlDecode(orionldState.uriParams.coordinates);
+        geoInfoP->coordinates = kjParse(orionldState.kjsonP, orionldState.uriParams.coordinates);
+
+        if (geoInfoP->coordinates == NULL) {
+            orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "invalid coordinates", 400);
+            return false;
+        }
+
+        if (pCheckGeoCoordinates(geoInfoP->coordinates, geoInfoP->geometry) == false)
+            return false;
+
+
+        //
+        // geoproperty
+        //
+        if ((orionldState.uriParams.geoproperty != NULL) &&
+            (strcmp(orionldState.uriParams.geoproperty, "location") != 0))
+            geoInfoP->geoProperty = orionldAttributeExpand(orionldState.contextP, orionldState.uriParams.geoproperty,
+                                                           true, NULL);
+        else
+            geoInfoP->geoProperty = (char *) "location";
     }
-    if (pCheckGeometry(orionldState.uriParams.geometry, &geoInfoP->geometry, false) == false)
-      return false;
 
-    //
-    // georel
-    //
-    if (orionldState.uriParams.georel == NULL)
-    {
-      orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "missing: georel", 400);
-      return false;
-    }
-
-    if (pCheckGeorelString(orionldState.uriParams.georel, geoInfoP) == false)
-      return false;
-
-    //
-    // coordinates
-    //
-    if (orionldState.uriParams.coordinates == NULL)
-    {
-      orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "missing: coordinates", 400);
-      return false;
-    }
-
-    urlDecode(orionldState.uriParams.coordinates);
-    geoInfoP->coordinates = kjParse(orionldState.kjsonP, orionldState.uriParams.coordinates);
-
-    if (geoInfoP->coordinates == NULL)
-    {
-      orionldError(OrionldBadRequestData, "Invalid Geo-Filter", "invalid coordinates", 400);
-      return false;
-    }
-
-    if (pCheckGeoCoordinates(geoInfoP->coordinates, geoInfoP->geometry) == false)
-      return false;
-
-
-    //
-    // geoproperty
-    //
-    if ((orionldState.uriParams.geoproperty != NULL) && (strcmp(orionldState.uriParams.geoproperty, "location") != 0))
-      geoInfoP->geoProperty = orionldAttributeExpand(orionldState.contextP, orionldState.uriParams.geoproperty, true, NULL);
-    else
-      geoInfoP->geoProperty = (char*) "location";
-  }
-
-  return true;
+    return true;
 }
 
+class listenerTest : public antlr4::BaseErrorListener {
+private:
 
+public:
+    void syntaxError(antlr4::Recognizer *recognizer, antlr4::Token *offendingSymbol, size_t line,
+                     size_t charPositionInLine, const std::string &msg, std::exception_ptr e) override {
+        std::cout << "SYNTAX ERROR IN MY LISTENER " << msg << std::endl;
+
+        throw antlr4::ParseCancellationException("in lexer");
+    };
+};
+
+static std::string& quoteProtect(std::string& s) {
+    boost::replace_all(s, "\"", "\\\"");
+    return s;
+}
+static QNode *qCheck2(const char *qString) {
+    std::stringstream stream(qString);
+    antlr4::ANTLRInputStream input(stream);
+    QueryLexer lexer(&input);
+    lexer.removeErrorListeners();
+    antlr4::CommonTokenStream tokens(&lexer);
+    QueryParser parser(&tokens);
+    Ref<antlr4::BailErrorStrategy> strategy(new antlr4::BailErrorStrategy());
+    parser.setErrorHandler(strategy);
+    QueryConcreteListener listener(true, true, true);
+    parser.addParseListener(&listener);
+    parser.removeErrorListeners();
+    parser.addErrorListener(&listener);
+    try {
+        parser.query();
+        if (listener.hasFailed()) {
+            const char *error = listener.getErrorMessage().c_str();
+            orionldError(OrionldBadRequestData, "Invalid Q-Filter", error, 400);
+            LM_RE(nullptr, ("Error (qLex: %s: %s)", "invalid q filter", error));
+        }
+    } catch (antlr4::ParseCancellationException &e) {
+        std::string error = listener.getErrorMessage().c_str();
+        if (error.length() == 0) {
+            std::string illegal = parser.getCurrentToken()->getText();
+            error = "illegal <" + quoteProtect(illegal) + "> at index " +
+                    std::to_string(parser.getCurrentToken()->getCharPositionInLine());
+        }
+        orionldError(OrionldBadRequestData, "Invalid Q-Filter", error.c_str(), 400);
+        LM_RE(nullptr, ("Error (qLex: %s: %s)", "invalid q filter", error.c_str()));
+    }
+    return listener.getNode();
+}
 
 // ----------------------------------------------------------------------------
 //
 // qCheck -
 //
-static QNode* qCheck(char* qString)
-{
-  QNode* qList;
-  char*  title;
-  char*  detail;
+static QNode *qCheck(char *qString) {
+    QNode *qList;
+    char *title;
+    char *detail;
 
-  qList = qLex(qString, true, &title, &detail);
-  if (qList == NULL)
-  {
-    orionldError(OrionldBadRequestData, "Invalid Q-Filter", detail, 400);
-    LM_RE(NULL, ("Error (qLex: %s: %s)", title, detail));
-  }
+    qList = qLex(qString, true, &title, &detail);
+    if (qList == NULL) {
+        orionldError(OrionldBadRequestData, "Invalid Q-Filter", detail, 400);
+        LM_RE(NULL, ("Error (qLex: %s: %s)", title, detail));
+    }
 
-  QNode* qNode = qParse(qList, NULL, true, true, &title, &detail);  // 3rd parameter: forDb=true
-  if (qNode == NULL)
-  {
-    orionldError(OrionldBadRequestData, "Invalid Q-Filter", detail, 400);
-    LM_E(("Error (qParse: %s: %s) - but, the subscription will be inserted in the sub-cache without 'q'", title, detail));
-  }
+    QNode *qNode = qParse(qList, NULL, true, true, &title, &detail);  // 3rd parameter: forDb=true
+    if (qNode == NULL) {
+        orionldError(OrionldBadRequestData, "Invalid Q-Filter", detail, 400);
+        LM_E(("Error (qParse: %s: %s) - but, the subscription will be inserted in the sub-cache without 'q'", title, detail));
+    }
 
-  return qNode;
+    return qNode;
 }
-
 
 
 // -----------------------------------------------------------------------------
 //
 // apiEntityToGeoJson - transform an API Entity into a GEOJSON Entity
 //
-KjNode* apiEntityToGeoJson(KjNode* apiEntityP, KjNode* geometryNodeP, bool geoPropertyFromProjection)
-{
-  KjNode* propertiesP = kjObject(orionldState.kjsonP, "properties");
+KjNode *apiEntityToGeoJson(KjNode *apiEntityP, KjNode *geometryNodeP, bool geoPropertyFromProjection) {
+    KjNode *propertiesP = kjObject(orionldState.kjsonP, "properties");
 
-  //
-  // 1. Find 'type' in the original entity - remove it and wait until everything is moved to 'properties' before putting 'type' back
-  //
-  KjNode* typeP = kjLookup(apiEntityP, "type");
-  if (typeP != NULL)  // Can't really be NULL, can it?
-    kjChildRemove(apiEntityP, typeP);
+    //
+    // 1. Find 'type' in the original entity - remove it and wait until everything is moved to 'properties' before putting 'type' back
+    //
+    KjNode *typeP = kjLookup(apiEntityP, "type");
+    if (typeP != NULL)  // Can't really be NULL, can it?
+        kjChildRemove(apiEntityP, typeP);
 
 
-  //
-  // 2. Find the 'id' in the original entity and remove it temporarily - will be put back again once 'properties' has been filled
-  //
-  KjNode* idP = kjLookup(apiEntityP, "id");
-  if (idP != NULL)  // Can't really be NULL, can it?
-    kjChildRemove(apiEntityP, idP);
+    //
+    // 2. Find the 'id' in the original entity and remove it temporarily - will be put back again once 'properties' has been filled
+    //
+    KjNode *idP = kjLookup(apiEntityP, "id");
+    if (idP != NULL)  // Can't really be NULL, can it?
+        kjChildRemove(apiEntityP, idP);
 
-  // 3. In case the geometryProperty was added to the projection even though it was not part of the "attrs" URI param - just remove it
-  if ((geoPropertyFromProjection == true) && (geometryNodeP != NULL))
-    kjChildRemove(apiEntityP, geometryNodeP);
+    // 3. In case the geometryProperty was added to the projection even though it was not part of the "attrs" URI param - just remove it
+    if ((geoPropertyFromProjection == true) && (geometryNodeP != NULL))
+        kjChildRemove(apiEntityP, geometryNodeP);
 
-  // 4. Move EVERYTHING from "apiEntityP" to "properties"
-  propertiesP->value.firstChildP = apiEntityP->value.firstChildP;
-  propertiesP->lastChild         = apiEntityP->lastChild;
+    // 4. Move EVERYTHING from "apiEntityP" to "properties"
+    propertiesP->value.firstChildP = apiEntityP->value.firstChildP;
+    propertiesP->lastChild = apiEntityP->lastChild;
 
-  // Clear out apiEntityP
-  apiEntityP->value.firstChildP  = NULL;
-  apiEntityP->lastChild          = NULL;
+    // Clear out apiEntityP
+    apiEntityP->value.firstChildP = NULL;
+    apiEntityP->lastChild = NULL;
 
-  //
-  // Should the @context be added to the payload body?
-  //
-  if (orionldState.linkHeaderAdded == false)
-  {
-    // Only if Prefer is not set to body=json
-    if ((orionldState.preferHeader == NULL) || (strcasecmp(orionldState.preferHeader, "body=json") != 0))
-    {
-      KjNode* contextP;
+    //
+    // Should the @context be added to the payload body?
+    //
+    if (orionldState.linkHeaderAdded == false) {
+        // Only if Prefer is not set to body=json
+        if ((orionldState.preferHeader == NULL) || (strcasecmp(orionldState.preferHeader, "body=json") != 0)) {
+            KjNode *contextP;
 
-      if (orionldState.link == NULL)
-        contextP = kjString(orionldState.kjsonP, "@context", coreContextUrl);
-      else
-        contextP = kjString(orionldState.kjsonP, "@context", orionldState.link);
+            if (orionldState.link == NULL)
+                contextP = kjString(orionldState.kjsonP, "@context", coreContextUrl);
+            else
+                contextP = kjString(orionldState.kjsonP, "@context", orionldState.link);
 
-      kjChildAdd(apiEntityP, contextP);
-      orionldState.noLinkHeader = true;
+            kjChildAdd(apiEntityP, contextP);
+            orionldState.noLinkHeader = true;
+        }
     }
-  }
 
-  // 5. Put the original entity type inside 'properties'
-  if (typeP != NULL)
-    kjChildPrepend(propertiesP, typeP);
+    // 5. Put the original entity type inside 'properties'
+    if (typeP != NULL)
+        kjChildPrepend(propertiesP, typeP);
 
-  // 6. Put the original entity id inside the top level entity
-  if (idP != NULL)
-    kjChildAdd(apiEntityP, idP);
+    // 6. Put the original entity id inside the top level entity
+    if (idP != NULL)
+        kjChildAdd(apiEntityP, idP);
 
-  // 7. Create the new 'type' for the GEOJSON Entity and add it to the toplevel
-  typeP = kjString(orionldState.kjsonP, "type", "Feature");
-  kjChildPrepend(apiEntityP, typeP);
+    // 7. Create the new 'type' for the GEOJSON Entity and add it to the toplevel
+    typeP = kjString(orionldState.kjsonP, "type", "Feature");
+    kjChildPrepend(apiEntityP, typeP);
 
-  // 8. Create the "geometry" (key-values) top-level item
-  KjNode* geometryP = NULL;
-  if ((geometryNodeP != NULL) && (geometryNodeP->type == KjObject))
-  {
-    geometryP = kjLookup(geometryNodeP, "value");
+    // 8. Create the "geometry" (key-values) top-level item
+    KjNode *geometryP = NULL;
+    if ((geometryNodeP != NULL) && (geometryNodeP->type == KjObject)) {
+        geometryP = kjLookup(geometryNodeP, "value");
+        if (geometryP == NULL) {
+            // "value" not found ... can it be Simplified format?
+            geometryP = geometryNodeP;
+        }
+
+        if (geometryP != NULL) {
+            if (geometryP->type == KjObject)  // && hasChildren type+coordinates ...
+            {
+                geometryP = kjClone(orionldState.kjsonP, geometryP);
+                geometryP->name = (char *) "geometry";
+            } else
+                geometryP = NULL;
+        }
+    }
     if (geometryP == NULL)
-    {
-      // "value" not found ... can it be Simplified format?
-      geometryP = geometryNodeP;
-    }
+        geometryP = kjNull(orionldState.kjsonP, "geometry");
 
-    if (geometryP != NULL)
-    {
-      if (geometryP->type == KjObject)  // && hasChildren type+coordinates ...
-      {
-        geometryP = kjClone(orionldState.kjsonP, geometryP);
-        geometryP->name = (char*) "geometry";
-      }
-      else
-        geometryP = NULL;
-    }
-  }
-  if (geometryP == NULL)
-    geometryP = kjNull(orionldState.kjsonP, "geometry");
+    kjChildAdd(apiEntityP, geometryP);
 
-  kjChildAdd(apiEntityP, geometryP);
+    // 9. Adding all the properties to top-level
+    propertiesP->next = NULL;
+    kjChildAdd(apiEntityP, propertiesP);
 
-  // 9. Adding all the properties to top-level
-  propertiesP->next = NULL;
-  kjChildAdd(apiEntityP, propertiesP);
-
-  return apiEntityP;
+    return apiEntityP;
 }
-
 
 
 // ----------------------------------------------------------------------------
@@ -283,136 +317,145 @@ KjNode* apiEntityToGeoJson(KjNode* apiEntityP, KjNode* geometryNodeP, bool geoPr
 //
 //   So, perhaps better to play it safe way and NOT EVER "redirect" to GET /entities/{entityId}
 //
-bool orionldGetEntities(void)
-{
-  if ((experimental == false) || (orionldState.in.legacy != NULL))                      // If Legacy header - use old implementation
-    return legacyGetEntities();
+bool orionldGetEntities(void) {
+    if ((experimental == false) ||
+        (orionldState.in.legacy != NULL))                      // If Legacy header - use old implementation
+        return legacyGetEntities();
 
-  //
-  // URI param validity check
-  //
-  char*                 id             = orionldState.uriParams.id;
-  char*                 type           = orionldState.uriParams.type;
-  char*                 idPattern      = orionldState.uriParams.idPattern;
-  char*                 q              = orionldState.uriParams.q;
-  char*                 attrs          = orionldState.uriParams.attrs;
-  char*                 geometry       = orionldState.uriParams.geometry;
-  bool                  local          = orionldState.uriParams.local;
+    //
+    // URI param validity check
+    //
+    char *id = orionldState.uriParams.id;
+    char *type = orionldState.uriParams.type;
+    char *idPattern = orionldState.uriParams.idPattern;
+    char *q = orionldState.uriParams.q;
+    char *attrs = orionldState.uriParams.attrs;
+    char *geometry = orionldState.uriParams.geometry;
+    bool local = orionldState.uriParams.local;
 
-  if ((id == NULL) && (idPattern == NULL) && (type == NULL) && ((geometry == NULL) || (*geometry == 0)) && (attrs == NULL) && (q == NULL) && (local == false))
-  {
-    orionldError(OrionldBadRequestData,
-                 "Too broad query",
-                 "Need at least one of: entity-id, entity-type, geo-location, attribute-list, Q-filter, local=true",
-                 400);
+    if ((id == NULL) && (idPattern == NULL) && (type == NULL) && ((geometry == NULL) || (*geometry == 0)) &&
+        (attrs == NULL) && (q == NULL) && (local == false)) {
+        orionldError(OrionldBadRequestData,
+                     "Too broad query",
+                     "Need at least one of: entity-id, entity-type, geo-location, attribute-list, Q-filter, local=true",
+                     400);
 
-    return false;
-  }
-
-
-  //
-  // If ONE or ZERO types in URI param 'type', the prepared array isn't used, just a simple char-pointer (named "type")
-  //
-  if      (orionldState.in.typeList.items == 0) type = (char*) ".*";
-  else if (orionldState.in.typeList.items == 1) type = orionldState.in.typeList.array[0];
-
-  //
-  // ID-list and Type-list at the same time is not supported
-  //
-  if ((orionldState.in.idList.items > 1) && (orionldState.in.typeList.items > 1))
-  {
-    LM_W(("Bad Input (URI params /id/ and /type/ are both lists - Not Permitted)"));
-    orionldError(OrionldBadRequestData, "URI params /id/ and /type/ are both lists", "Not Permitted", 400);
-    return false;
-  }
-
-  OrionldGeoInfo geoInfo;
-  if (geoCheck(&geoInfo) == false)
-    return false;
-
-  QNode* qNode = NULL;
-  if (orionldState.uriParams.q != NULL)
-  {
-    qNode = qCheck(orionldState.uriParams.q);
-    if (qNode == NULL)
-      return false;
-  }
-
-  // According to the spec, id takes precedence over idPattern, so, if both are present, idPattern is NULLed out
-  if ((orionldState.in.idList.items > 0) && (idPattern != NULL))
-    idPattern = NULL;
-
-  char* geojsonGeometryLongName = NULL;
-  if (orionldState.out.contentType == GEOJSON)
-    geojsonGeometryLongName = orionldState.in.geometryPropertyExpanded;
-
-  int64_t       count;
-  KjNode*       dbEntityArray = mongocEntitiesQuery(&orionldState.in.typeList,
-                                                    &orionldState.in.idList,
-                                                    idPattern,
-                                                    &orionldState.in.attrList,
-                                                    qNode,
-                                                    &geoInfo,
-                                                    &count,
-                                                    geojsonGeometryLongName);
-
-  if (dbEntityArray == NULL)
-    return false;
-
-  KjNode*       apiEntityArray  = kjArray(orionldState.kjsonP, NULL);
-  RenderFormat  rf              = RF_NORMALIZED;
-
-  if      (orionldState.uriParamOptions.concise   == true) rf = RF_CONCISE;
-  else if (orionldState.uriParamOptions.keyValues == true) rf = RF_KEYVALUES;
-
-  if (orionldState.out.contentType == GEOJSON)
-  {
-    KjNode* geojsonToplevelP = kjObject(orionldState.kjsonP, NULL);
-    KjNode* featuresP        = kjArray(orionldState.kjsonP, "features");  // this is where all entities go
-    KjNode* typeP            = kjString(orionldState.kjsonP, "type", "FeatureCollection");
-
-    kjChildAdd(geojsonToplevelP, typeP);
-    kjChildAdd(geojsonToplevelP, featuresP);
-
-    orionldState.responseTree = geojsonToplevelP;
-
-    KjNode* dbEntityP = dbEntityArray->value.firstChildP;
-    KjNode* next;
-
-    while (dbEntityP != NULL)
-    {
-      next = dbEntityP->next;
-
-      // Must remove dbEntityP from dbEntityArray as dbEntityP gets transformed into apiEntityP and then inserted into featuresP
-      kjChildRemove(dbEntityArray, dbEntityP);
-
-      KjNode*     apiEntityP           = dbModelToApiEntity2(dbEntityP, orionldState.uriParamOptions.sysAttrs, rf, orionldState.uriParams.lang, true, &orionldState.pd);
-      const char* geometryPropertyName = (orionldState.uriParams.geometryProperty == NULL)? "location" : orionldState.uriParams.geometryProperty;
-      KjNode*     geometryNodeP        = kjLookup(apiEntityP, geometryPropertyName);
-
-      apiEntityP = apiEntityToGeoJson(apiEntityP, geometryNodeP, orionldState.geoPropertyFromProjection);
-      kjChildAdd(featuresP, apiEntityP);
-
-      dbEntityP = next;
+        return false;
     }
-  }
-  else
-  {
-    orionldState.responseTree = apiEntityArray;
 
-    for (KjNode* dbEntityP = dbEntityArray->value.firstChildP; dbEntityP != NULL; dbEntityP = dbEntityP->next)
-    {
-      KjNode* apiEntityP = dbModelToApiEntity2(dbEntityP, orionldState.uriParamOptions.sysAttrs, rf, orionldState.uriParams.lang, true, &orionldState.pd);
-      kjChildAdd(apiEntityArray, apiEntityP);
+
+    //
+    // If ONE or ZERO types in URI param 'type', the prepared array isn't used, just a simple char-pointer (named "type")
+    //
+    if (orionldState.in.typeList.items == 0) type = (char *) ".*";
+    else if (orionldState.in.typeList.items == 1) type = orionldState.in.typeList.array[0];
+
+    //
+    // ID-list and Type-list at the same time is not supported
+    //
+    if ((orionldState.in.idList.items > 1) && (orionldState.in.typeList.items > 1)) {
+        LM_W(("Bad Input (URI params /id/ and /type/ are both lists - Not Permitted)"));
+        orionldError(OrionldBadRequestData, "URI params /id/ and /type/ are both lists", "Not Permitted", 400);
+        return false;
     }
-  }
 
-  if (orionldState.uriParams.count == true)
-    orionldHeaderAdd(&orionldState.out.headers, HttpResultsCount, NULL, count);
+    OrionldGeoInfo geoInfo;
+    if (geoCheck(&geoInfo) == false)
+        return false;
 
-  // If empty result array, no Link header is needed
-  if (orionldState.responseTree->value.firstChildP == NULL)
-    orionldState.noLinkHeader = true;
+    // OR
+    // NodeOr->children
+    // |->QNodeExist
+    // |->QNodeExist
+    // |->QNodeExist
+    QNode *qNode = NULL;
+    if (orionldState.uriParams.q != NULL) {
+        qNode = qCheck2(orionldState.uriParams.q);
+        if (qNode == NULL)
+            return false;
+        std::cout << qPrint(qNode) << std::endl;
+    }
 
-  return true;
+    // (ab|(salut;test)|xy|yz)
+    // NodeOr
+    // |c->QNodeExists
+    //    |c->QNodeVariable(ab)
+    //    |n->QNodeAnd
+    //       |c->QNodeExists
+    //          |c->QNodeVariable(salut)
+    // According to the spec, id takes precedence over idPattern, so, if both are present, idPattern is NULLed out
+    if ((orionldState.in.idList.items > 0) && (idPattern != NULL))
+        idPattern = NULL;
+
+    char *geojsonGeometryLongName = NULL;
+    if (orionldState.out.contentType == GEOJSON)
+        geojsonGeometryLongName = orionldState.in.geometryPropertyExpanded;
+
+    int64_t count;
+    KjNode *dbEntityArray = mongocEntitiesQuery(&orionldState.in.typeList,
+                                                &orionldState.in.idList,
+                                                idPattern,
+                                                &orionldState.in.attrList,
+                                                qNode,
+                                                &geoInfo,
+                                                &count,
+                                                geojsonGeometryLongName);
+
+    if (dbEntityArray == NULL)
+        return false;
+
+    KjNode *apiEntityArray = kjArray(orionldState.kjsonP, NULL);
+    RenderFormat rf = RF_NORMALIZED;
+
+    if (orionldState.uriParamOptions.concise == true) rf = RF_CONCISE;
+    else if (orionldState.uriParamOptions.keyValues == true) rf = RF_KEYVALUES;
+
+    if (orionldState.out.contentType == GEOJSON) {
+        KjNode *geojsonToplevelP = kjObject(orionldState.kjsonP, NULL);
+        KjNode *featuresP = kjArray(orionldState.kjsonP, "features");  // this is where all entities go
+        KjNode *typeP = kjString(orionldState.kjsonP, "type", "FeatureCollection");
+
+        kjChildAdd(geojsonToplevelP, typeP);
+        kjChildAdd(geojsonToplevelP, featuresP);
+
+        orionldState.responseTree = geojsonToplevelP;
+
+        KjNode *dbEntityP = dbEntityArray->value.firstChildP;
+        KjNode *next;
+
+        while (dbEntityP != NULL) {
+            next = dbEntityP->next;
+
+            // Must remove dbEntityP from dbEntityArray as dbEntityP gets transformed into apiEntityP and then inserted into featuresP
+            kjChildRemove(dbEntityArray, dbEntityP);
+
+            KjNode *apiEntityP = dbModelToApiEntity2(dbEntityP, orionldState.uriParamOptions.sysAttrs, rf,
+                                                     orionldState.uriParams.lang, true, &orionldState.pd);
+            const char *geometryPropertyName = (orionldState.uriParams.geometryProperty == NULL) ? "location"
+                                                                                                 : orionldState.uriParams.geometryProperty;
+            KjNode *geometryNodeP = kjLookup(apiEntityP, geometryPropertyName);
+
+            apiEntityP = apiEntityToGeoJson(apiEntityP, geometryNodeP, orionldState.geoPropertyFromProjection);
+            kjChildAdd(featuresP, apiEntityP);
+
+            dbEntityP = next;
+        }
+    } else {
+        orionldState.responseTree = apiEntityArray;
+
+        for (KjNode *dbEntityP = dbEntityArray->value.firstChildP; dbEntityP != NULL; dbEntityP = dbEntityP->next) {
+            KjNode *apiEntityP = dbModelToApiEntity2(dbEntityP, orionldState.uriParamOptions.sysAttrs, rf,
+                                                     orionldState.uriParams.lang, true, &orionldState.pd);
+            kjChildAdd(apiEntityArray, apiEntityP);
+        }
+    }
+
+    if (orionldState.uriParams.count == true)
+        orionldHeaderAdd(&orionldState.out.headers, HttpResultsCount, NULL, count);
+
+    // If empty result array, no Link header is needed
+    if (orionldState.responseTree->value.firstChildP == NULL)
+        orionldState.noLinkHeader = true;
+
+    return true;
 }

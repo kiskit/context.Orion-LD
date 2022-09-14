@@ -421,28 +421,32 @@ QNode* qLex(char* s, bool timestampToFloat, char** titleP, char** detailsP)
     }
     else if ((*sP == 'R') && (sP[1] == 'E') && (sP[2] == '('))
     {
-      char  prev  = 0;
-
+      int backslashCount = 0;
       sP = &sP[3];  // step over RE(
 
       //
       // Find closing ')', counting all '(', ')'
       // Skipping of course escaped parenthesis - "\(", "\)"
       //
-      int level = 1;
       while (*sP != 0)
       {
-        if (prev != '\\')
-        {
-          if (*sP == ')')
-            --level;
-          else if (*sP == '(')
-            ++level;
+        if (*sP == '\\') {
+            backslashCount++;
+        } else {
+            if (*sP == ')') {
+                if (backslashCount % 2 == 0)
+                    break;
+            } else if (*sP == '(') {
+                if (backslashCount % 2 == 0) { // opening parenthesis is not escaped
+                    *titleP = (char*) "ngsi-ld query language: unexpected opening parenthesis in regexp";
+                    *detailsP = sP;
+                    if (orionldState.useMalloc == true)
+                        qListRelease(dummy.next);
+                    return NULL;
+                }
+            }
+            backslashCount = 0;
         }
-
-        if (level == 0)
-          break;
-        prev = *sP;
         ++sP;
       }
 
@@ -460,6 +464,7 @@ QNode* qLex(char* s, bool timestampToFloat, char** titleP, char** detailsP)
       ++sP;     // And stepping over it
       // PUSH is taken care of later
     }
+    // end regex
     else
     {
       //

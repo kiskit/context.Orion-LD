@@ -96,7 +96,7 @@ ELSEIF (${DISTRO} MATCHES "Debian_9.*")
 ELSEIF (${DISTRO} MATCHES "RedHat_8.*")
   set (CMAKE_CXX_FLAGS "-Wall -Wno-unknown-pragmas -D_LARGEFILE64_SOURCE -DREDHAT_UBI=8.4 -D_GNU_SOURCE -Werror -Wno-deprecated-declarations -fno-var-tracking-assignments")
 ELSE()
-  set (CMAKE_CXX_FLAGS "-Wall -Wno-unknown-pragmas -D_LARGEFILE64_SOURCE -D_GNU_SOURCE -Werror -Wno-deprecated-declarations -fno-var-tracking-assignments")
+  set (CMAKE_CXX_FLAGS "-Wall -Wno-unknown-pragmas -D_LARGEFILE64_SOURCE -D_GNU_SOURCE -Wno-deprecated-declarations -fno-var-tracking-assignments") # -Werror
 ENDIF ()
 
 #
@@ -180,6 +180,14 @@ endif (${CMAKE_BUILD_TYPE} STREQUAL DEBUG)
 # Libraries
 #
 
+# TODO remove these
+include_directories(/usr/kbase)
+include_directories(/usr/kalloc)
+include_directories(/usr/khash)
+include_directories(/usr/kjson)
+include_directories(/usr/klog)
+# TODO remove these
+
 SET (ORION_LIBS
     common
     rest          # verbName(Verb) from setExtendedHttpInfo@MongoCommonSubscription.cpp.o; jsonRequestTreat from payloadParse@RestService.cpp.o
@@ -224,6 +232,7 @@ SET (ORION_LIBS
     orionld_payloadCheck
     orionld_mqtt
     orionld_q
+    orionld_betterq
     orionld_mongoc       # subCache needs mongoc
     orionld_dbModel
     orionld_common
@@ -284,6 +293,7 @@ SET (DYNAMIC_LIBS
     pq             # for TRoE & Postgres
     libmongoc-1.0.so
     libbson-1.0.so
+    antlr4-runtime
 )
 
 #
@@ -302,6 +312,7 @@ endif (UNIT_TEST)
 # Common include
 #
 include_directories("/usr/include")
+include_directories(/usr/include/antlr4-runtime)
 include_directories("/usr/local/include/libbson-1.0")
 include_directories("/usr/local/include/libmongoc-1.0")
 include_directories("${PROJECT_SOURCE_DIR}/..")
@@ -361,6 +372,7 @@ if (error EQUAL 0)
   ADD_SUBDIRECTORY(src/lib/orionld/socketService)
   ADD_SUBDIRECTORY(src/lib/orionld/notifications)
   ADD_SUBDIRECTORY(src/lib/orionld/q)
+  ADD_SUBDIRECTORY(src/lib/orionld/betterq)
   ADD_SUBDIRECTORY(src/lib/orionld/rest)
   ADD_SUBDIRECTORY(src/lib/orionld/serviceRoutines)
   ADD_SUBDIRECTORY(src/lib/orionld/troe)
