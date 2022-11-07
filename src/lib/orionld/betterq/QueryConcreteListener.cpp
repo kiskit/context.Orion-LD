@@ -6,6 +6,7 @@
 #include "orionld/q/qVariableFix.h"
 #include "common/globals.h"
 #include "orionld/q/qRelease.h"
+#include "QPrint.h"
 
 /* this class is both the listener and the error listener for the query grammar.
  * It takes the elements the parser gives it and stores them accordingly into a stack.
@@ -31,13 +32,32 @@ QNode *QueryConcreteListener::getNode() {
         return result;
 }
 
+inline bool isLogicalOperator(QNode *node) {
+    return (node->type == QNodeOr) || (node->type == QNodeAnd);
+}
 
-inline QNode *removeParenthesis(QNode *term) {
-    if (term->type == QNodeOpen) {
-        return term->value.children;
-    } else {
-        return term;
+// Can be used to flatten a node hierarchy
+QNode *flatten(QNode *toFlatten) {
+    if (!isLogicalOperator(toFlatten))
+        return toFlatten;
+
+    auto currentType = toFlatten->type;
+    auto currentNode = toFlatten;
+    auto currentChild = &(currentNode->value.children);
+    while (*currentChild != nullptr) {
+        *currentChild = flatten(*currentChild);
+        if ((*currentChild)->type == currentType) {
+            auto next = (*currentChild)->next;
+            *currentChild = (*currentChild)->value.children;
+            QNode *insertAtEndPtr;
+            for (insertAtEndPtr = *currentChild;
+                 insertAtEndPtr->next != nullptr; insertAtEndPtr = insertAtEndPtr->next);
+            insertAtEndPtr->next = next;
+        } else {
+            currentChild = &((*currentChild)->next);
+        }
     }
+    return toFlatten;
 }
 
 QNode *popAndRemove(std::vector<QNode *> &stack) {
@@ -46,100 +66,95 @@ QNode *popAndRemove(std::vector<QNode *> &stack) {
     return back;
 }
 
-void invertStack(vector<QNode *> &toInvert, vector<QNode *> &invertInto, bool inQuery) {
-    // In the case of protect operators, we need to invert all
-    // In the other case, we stop at opening par
-    while (!toInvert.empty()) {
-        if (toInvert.back()->type == QNodeOpen) {
-            if (inQuery) {
-                toInvert.back()->value.children = popAndRemove(invertInto);
-            } else {
-                break; // stop inverting
-            }
-        }
-        invertInto.push_back(popAndRemove(toInvert));
-    }
-}
 
 void QueryConcreteListener::exitQuery(QueryParser::QueryContext *ctx) {
     CHECK_FAIL()
-    std::vector<QNode *> queryTermOrTermAssocStack;
-    invertStack(stack, queryTermOrTermAssocStack, true);
-    if (queryTermOrTermAssocStack.size() > 1) {
-        // because there could be only one term, in which case it needs to be left alone
-        std::vector<QNode *> orStack;
-        processLogicalAndNodes(queryTermOrTermAssocStack, orStack);
-        processLogicalOrNodes(orStack);
-    } else {
-        stack.push_back(popAndRemove(queryTermOrTermAssocStack));
+    if (ctx->querytermortermandassoc().size() > 1) { // we've got or clauses
+        auto orNode = qNode(QNodeOr);
+        while (!stack.empty()) {
+            auto currentNode = popAndRemove(stack);
+            if ((currentNode->type == QNodeOr) &&
+                (currentNode->value.children == nullptr)) { // if it's an empty or operator
+                // TODO fix memory leak
+                // qRelease(currentNode);
+            } else {
+                currentNode->next = orNode->value.children;
+                orNode->value.children = currentNode;
+            }
+        }
+        stack.push_back(orNode);
     }
-    result = removeParenthesis(stack.back());
+    result = popAndRemove(stack);
     // Note: the result could be optimized by flattening the QNode structure:
     // A QNodeAnd N1 that has another QNodeAnd N2 as a child can simply add N2's children to its own.
     // Same with QNodeOr nodes
 }
 
-void
-QueryConcreteListener::processLogicalAndNodes(vector<QNode *> &queryTermOrTermAssocStack,
-                                              vector<QNode *> &orStack) const {
-    QNode *leftNode = popAndRemove(queryTermOrTermAssocStack);
-    QNode **andLastChild = nullptr; // this is needed so we add a QNodeAnd child at the end of the list, thus respecting the input's order
-
-    while (!queryTermOrTermAssocStack.empty()) {
-        QNode *middleNode = popAndRemove(queryTermOrTermAssocStack);
-        if (middleNode->type == QNodeOr) {
-            andLastChild = nullptr;
-            orStack.push_back(removeParenthesis(leftNode));
-            // TODO: memory leak
-            // qRelease(middleNode);
-            leftNode = popAndRemove(queryTermOrTermAssocStack);
-        } else if (middleNode->type == QNodeAnd) {
-            if (leftNode->type == QNodeAnd) {
-                QNode *rightNode = removeParenthesis(popAndRemove(queryTermOrTermAssocStack));
-                *andLastChild = rightNode;
-                andLastChild = &((*andLastChild)->next);
-                // TODO: memory leak
-                //qRelease(middleNode);
+void QueryConcreteListener::exitQuerytermortermandassoc(QueryParser::QuerytermortermandassocContext *ctx) {
+    CHECK_FAIL()
+    if (ctx->querytermassocornot().size() > 1) {
+        QNode *andNode = nullptr;
+        while (!stack.empty() && ((stack.back()->type != QNodeOr) || (stack.back()->value.children != nullptr))) {
+            auto currentNode = popAndRemove(stack);
+            if (andNode == nullptr)
+                andNode = qNode(QNodeAnd);
+            if ((currentNode->type == QNodeAnd) &&
+                (currentNode->value.children == nullptr)) { // if it's an empty and operator
+                // TODO fix memory leak
+                // qRelease(currentNode);
             } else {
-                if (andLastChild == nullptr) {
-                    andLastChild = &middleNode->value.children;
-                }
-                *andLastChild = removeParenthesis(leftNode);
-                andLastChild = &((*andLastChild)->next);
-                leftNode = middleNode;
+                currentNode->next = andNode->value.children;
+                andNode->value.children = currentNode;
             }
-        } else {
-            middleNode = removeParenthesis(middleNode);
-            *andLastChild = middleNode;
-            andLastChild = &((*andLastChild)->next);
         }
-    }
-    orStack.push_back(removeParenthesis(leftNode));
-}
+        stack.push_back(andNode);
+    } else {
 
+    }
+}
 
 void QueryConcreteListener::exitQuerytermassoc(QueryParser::QuerytermassocContext *ctx) {
     CHECK_FAIL()
-    if (stack.size() > 2) { // meaning we have more than "(queryTerm)". If we don't, we leave it on the stack
-        std::vector<QNode *> queryTermStack;
-        std::vector<QNode *> orStack;
-        invertStack(stack, queryTermStack, false);
-        processLogicalAndNodes(queryTermStack, orStack);
-        processLogicalOrNodes(orStack);
+    if (ctx->querytermandassoc().size() > 1) { // we've got or clauses
+        auto orNode = qNode(QNodeOr);
+        while (stack.back()->type != QNodeOpen) {
+            auto currentNode = popAndRemove(stack);
+            if (currentNode->type == QNodeOr) {
+                // TODO fix memory leak
+                // qRelease(currentNode);
+            } else {
+                currentNode->next = orNode->value.children;
+                orNode->value.children = currentNode;
+            }
+        }
+        stack.pop_back(); // remove opening parenthesis
+        stack.push_back(orNode);
+    } else {
+        auto singleElement = popAndRemove(stack);
+        stack.pop_back(); // remove opening parenthesis
+        stack.push_back(singleElement);
     }
 }
 
-void QueryConcreteListener::processLogicalOrNodes(vector<QNode *> &orStack) {
-    if (orStack.size() > 1) {
-        auto orNode = qNode(QNodeOr);
-        while (!orStack.empty()) {
-            auto orOperand = popAndRemove(orStack);
-            orOperand->next = orNode->value.children;
-            orNode->value.children = orOperand;
+void QueryConcreteListener::exitQuerytermandassoc(QueryParser::QuerytermandassocContext *ctx) {
+    CHECK_FAIL()
+    if (ctx->queryterm().size() > 1) {
+        QNode *andNode = nullptr;
+        while ((stack.back()->type != QNodeOpen) && (stack.back()->type != QNodeOr)) {
+            auto currentNode = popAndRemove(stack);
+            if (andNode == nullptr) {
+                andNode = qNode(QNodeAnd);
+            }
+            if (currentNode->type == QNodeAnd) {
+                // TODO fix memory leak
+                // qRelease(currentNode);
+            } else {
+                currentNode->next = andNode->value.children;
+                andNode->value.children = currentNode;
+            }
         }
-        stack.push_back(orNode);
+        stack.push_back(andNode);
     } else {
-        stack.push_back(popAndRemove(orStack));
     }
 }
 

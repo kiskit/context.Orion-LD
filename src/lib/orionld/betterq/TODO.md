@@ -8,6 +8,7 @@
 * have a look at how createdAt and such are handled 
 
 ## SHOULD
+* Handle priorities (AND and OR) through grammar
 * Add compilation for grammar in cmake (java -jar ~/Development/antlr/antlr-4.9.2-complete.jar -Dlanguage=Cpp Query). Fair warning, changing ANTLR version may result in some mild to average pain.
 * Remove printing stuff from lib (qPrint)
 * Separate stack management utility functions into its own file, maybe make a nice QNode* stack class 

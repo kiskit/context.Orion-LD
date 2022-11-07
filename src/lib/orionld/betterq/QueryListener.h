@@ -17,11 +17,17 @@ public:
   virtual void enterQuery(QueryParser::QueryContext *ctx) = 0;
   virtual void exitQuery(QueryParser::QueryContext *ctx) = 0;
 
-  virtual void enterQuerytermortermassoc(QueryParser::QuerytermortermassocContext *ctx) = 0;
-  virtual void exitQuerytermortermassoc(QueryParser::QuerytermortermassocContext *ctx) = 0;
+  virtual void enterQuerytermortermandassoc(QueryParser::QuerytermortermandassocContext *ctx) = 0;
+  virtual void exitQuerytermortermandassoc(QueryParser::QuerytermortermandassocContext *ctx) = 0;
+
+  virtual void enterQuerytermassocornot(QueryParser::QuerytermassocornotContext *ctx) = 0;
+  virtual void exitQuerytermassocornot(QueryParser::QuerytermassocornotContext *ctx) = 0;
 
   virtual void enterQuerytermassoc(QueryParser::QuerytermassocContext *ctx) = 0;
   virtual void exitQuerytermassoc(QueryParser::QuerytermassocContext *ctx) = 0;
+
+  virtual void enterQuerytermandassoc(QueryParser::QuerytermandassocContext *ctx) = 0;
+  virtual void exitQuerytermandassoc(QueryParser::QuerytermandassocContext *ctx) = 0;
 
   virtual void enterQueryterm(QueryParser::QuerytermContext *ctx) = 0;
   virtual void exitQueryterm(QueryParser::QuerytermContext *ctx) = 0;

@@ -26,8 +26,10 @@ public:
                                                                                    timestampToFloat(
                                                                                            _timestampToFloat) {}
     void exitQuery(QueryParser::QueryContext *ctx) override;
-
+    void exitQuerytermortermandassoc(QueryParser::QuerytermortermandassocContext *ctx) override;
     void exitQuerytermassoc(QueryParser::QuerytermassocContext *ctx) override;
+
+    void exitQuerytermandassoc(QueryParser::QuerytermandassocContext *ctx) override;
 
     void exitQueryterm(QueryParser::QuerytermContext *ctx) override;
 

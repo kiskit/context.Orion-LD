@@ -19,11 +19,17 @@ public:
   virtual void enterQuery(QueryParser::QueryContext * /*ctx*/) override { }
   virtual void exitQuery(QueryParser::QueryContext * /*ctx*/) override { }
 
-  virtual void enterQuerytermortermassoc(QueryParser::QuerytermortermassocContext * /*ctx*/) override { }
-  virtual void exitQuerytermortermassoc(QueryParser::QuerytermortermassocContext * /*ctx*/) override { }
+  virtual void enterQuerytermortermandassoc(QueryParser::QuerytermortermandassocContext * /*ctx*/) override { }
+  virtual void exitQuerytermortermandassoc(QueryParser::QuerytermortermandassocContext * /*ctx*/) override { }
+
+  virtual void enterQuerytermassocornot(QueryParser::QuerytermassocornotContext * /*ctx*/) override { }
+  virtual void exitQuerytermassocornot(QueryParser::QuerytermassocornotContext * /*ctx*/) override { }
 
   virtual void enterQuerytermassoc(QueryParser::QuerytermassocContext * /*ctx*/) override { }
   virtual void exitQuerytermassoc(QueryParser::QuerytermassocContext * /*ctx*/) override { }
+
+  virtual void enterQuerytermandassoc(QueryParser::QuerytermandassocContext * /*ctx*/) override { }
+  virtual void exitQuerytermandassoc(QueryParser::QuerytermandassocContext * /*ctx*/) override { }
 
   virtual void enterQueryterm(QueryParser::QuerytermContext * /*ctx*/) override { }
   virtual void exitQueryterm(QueryParser::QuerytermContext * /*ctx*/) override { }

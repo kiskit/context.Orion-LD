@@ -22,16 +22,17 @@ public:
   };
 
   enum {
-    RuleQuery = 0, RuleQuerytermortermassoc = 1, RuleQuerytermassoc = 2, 
-    RuleQueryterm = 3, RuleDottedpath = 4, RuleAttribute = 5, RuleQoperator = 6, 
-    RulePatternop = 7, RulePatternnoop = 8, RuleGreatereq = 9, RuleGreater = 10, 
-    RuleLess = 11, RuleLesseq = 12, RuleEqual = 13, RuleUnequal = 14, RuleOthervalue = 15, 
-    RuleQtrue = 16, RuleQfalse = 17, RuleValue = 18, RuleRange = 19, RuleValuelist = 20, 
-    RuleCompequalityvalue = 21, RuleUri = 22, RuleLogicalop = 23, RuleOrop = 24, 
-    RuleAndop = 25, RuleComparablevalue = 26, RuleQuotedstr = 27, RuleNotaquote = 28, 
-    RuleQuotedstringchar = 29, RuleRegex = 30, RuleRegexchar = 31, RuleNotaparenthesis = 32, 
-    RuleDatetime = 33, RuleDate = 34, RuleTime = 35, RuleNumber = 36, RuleFrac = 37, 
-    RuleQint = 38, RuleAnydigit = 39, RuleOpeningpar = 40, RuleClosingpar = 41
+    RuleQuery = 0, RuleQuerytermortermandassoc = 1, RuleQuerytermassocornot = 2, 
+    RuleQuerytermassoc = 3, RuleQuerytermandassoc = 4, RuleQueryterm = 5, 
+    RuleDottedpath = 6, RuleAttribute = 7, RuleQoperator = 8, RulePatternop = 9, 
+    RulePatternnoop = 10, RuleGreatereq = 11, RuleGreater = 12, RuleLess = 13, 
+    RuleLesseq = 14, RuleEqual = 15, RuleUnequal = 16, RuleOthervalue = 17, 
+    RuleQtrue = 18, RuleQfalse = 19, RuleValue = 20, RuleRange = 21, RuleValuelist = 22, 
+    RuleCompequalityvalue = 23, RuleUri = 24, RuleLogicalop = 25, RuleOrop = 26, 
+    RuleAndop = 27, RuleComparablevalue = 28, RuleQuotedstr = 29, RuleNotaquote = 30, 
+    RuleQuotedstringchar = 31, RuleRegex = 32, RuleRegexchar = 33, RuleNotaparenthesis = 34, 
+    RuleDatetime = 35, RuleDate = 36, RuleTime = 37, RuleNumber = 38, RuleFrac = 39, 
+    RuleQint = 40, RuleAnydigit = 41, RuleOpeningpar = 42, RuleClosingpar = 43
   };
 
   explicit QueryParser(antlr4::TokenStream *input);
@@ -45,8 +46,10 @@ public:
 
 
   class QueryContext;
-  class QuerytermortermassocContext;
+  class QuerytermortermandassocContext;
+  class QuerytermassocornotContext;
   class QuerytermassocContext;
+  class QuerytermandassocContext;
   class QuerytermContext;
   class DottedpathContext;
   class AttributeContext;
@@ -91,11 +94,11 @@ public:
   public:
     QueryContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<QuerytermortermassocContext *> querytermortermassoc();
-    QuerytermortermassocContext* querytermortermassoc(size_t i);
+    std::vector<QuerytermortermandassocContext *> querytermortermandassoc();
+    QuerytermortermandassocContext* querytermortermandassoc(size_t i);
     antlr4::tree::TerminalNode *EOF();
-    std::vector<LogicalopContext *> logicalop();
-    LogicalopContext* logicalop(size_t i);
+    std::vector<OropContext *> orop();
+    OropContext* orop(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -104,30 +107,46 @@ public:
 
   QueryContext* query();
 
-  class  QuerytermortermassocContext : public antlr4::ParserRuleContext {
+  class  QuerytermortermandassocContext : public antlr4::ParserRuleContext {
   public:
-    QuerytermortermassocContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    QuerytermortermandassocContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    QuerytermContext *queryterm();
-    QuerytermassocContext *querytermassoc();
+    std::vector<QuerytermassocornotContext *> querytermassocornot();
+    QuerytermassocornotContext* querytermassocornot(size_t i);
+    std::vector<AndopContext *> andop();
+    AndopContext* andop(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
    
   };
 
-  QuerytermortermassocContext* querytermortermassoc();
+  QuerytermortermandassocContext* querytermortermandassoc();
+
+  class  QuerytermassocornotContext : public antlr4::ParserRuleContext {
+  public:
+    QuerytermassocornotContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    QuerytermassocContext *querytermassoc();
+    QuerytermContext *queryterm();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  QuerytermassocornotContext* querytermassocornot();
 
   class  QuerytermassocContext : public antlr4::ParserRuleContext {
   public:
     QuerytermassocContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OpeningparContext *openingpar();
-    std::vector<QuerytermContext *> queryterm();
-    QuerytermContext* queryterm(size_t i);
+    std::vector<QuerytermandassocContext *> querytermandassoc();
+    QuerytermandassocContext* querytermandassoc(size_t i);
     ClosingparContext *closingpar();
-    std::vector<LogicalopContext *> logicalop();
-    LogicalopContext* logicalop(size_t i);
+    std::vector<OropContext *> orop();
+    OropContext* orop(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -135,6 +154,22 @@ public:
   };
 
   QuerytermassocContext* querytermassoc();
+
+  class  QuerytermandassocContext : public antlr4::ParserRuleContext {
+  public:
+    QuerytermandassocContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<QuerytermContext *> queryterm();
+    QuerytermContext* queryterm(size_t i);
+    std::vector<AndopContext *> andop();
+    AndopContext* andop(size_t i);
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  QuerytermandassocContext* querytermandassoc();
 
   class  QuerytermContext : public antlr4::ParserRuleContext {
   public:

@@ -2,12 +2,18 @@ grammar Query;
 
 // Parser
 
-query: querytermortermassoc (logicalop querytermortermassoc)* EOF // Query = (QueryTerm / QueryTermAssoc) *(LogicalOp (QueryTerm / QueryTermAssoc))
+query: querytermortermandassoc (orop querytermortermandassoc)* EOF // Query = (QueryTerm / QueryTermAssoc) *(LogicalOp (QueryTerm / QueryTermAssoc))
     ;
-querytermortermassoc: queryterm
-            | querytermassoc
+
+querytermortermandassoc: querytermassocornot (andop querytermassocornot)* // for grouping queryterms r querytermassoc by and operator first
     ;
-querytermassoc : openingpar queryterm (logicalop queryterm)* closingpar // QueryTermAssoc = %x28 QueryTerm *(LogicalOp QueryTerm) %x29
+querytermassocornot: querytermassoc
+    | queryterm
+;
+querytermassoc : openingpar querytermandassoc (orop querytermandassoc)* closingpar // QueryTermAssoc = %x28 QueryTerm *(LogicalOp QueryTerm) %x29
+    ;
+
+querytermandassoc: queryterm (andop queryterm)* // for grouping queryterms by and operator first
     ;
 
 queryterm   : attribute // QueryTerm = Attribute
