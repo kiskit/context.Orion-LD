@@ -7,6 +7,12 @@
 #include "common/globals.h"
 #include "orionld/q/qRelease.h"
 #include "QPrint.h"
+#include "orionld/common/orionldState.h"                         // orionldState
+
+extern "C"
+{
+    #include "kalloc/kaStrdup.h"                                // kaStrdup
+}
 
 /* this class is both the listener and the error listener for the query grammar.
  * It takes the elements the parser gives it and stores them accordingly into a stack.
@@ -24,9 +30,8 @@ using namespace std;
 
 QNode *QueryConcreteListener::getNode() {
     if (isFailed) {
-        // TODO release nodes?
-        if (result != nullptr)
-            qRelease(result);
+        //if (result != nullptr)
+        //    qRelease(result);
         return nullptr;
     } else
         return result;
@@ -201,7 +206,8 @@ void QueryConcreteListener::exitAttribute(QueryParser::AttributeContext *ctx) {
     char *detailsP;
     // TODO memory leak on strdup
     if (qToDbModel) {
-        node->value.s = qVariableFix(strdup(ctx->getText().c_str()), forDB, &isMd, &detailsP);
+        //node->value.s = qVariableFix(strdup(ctx->getText().c_str()), forDB, &isMd, &detailsP);
+        node->value.s = qVariableFix(kaStrdup(&orionldState.kalloc, ctx->getText().c_str()), forDB, &isMd, &detailsP);
     }
     stack.push_back(node);
 }
@@ -249,7 +255,8 @@ void QueryConcreteListener::exitAndop(QueryParser::AndopContext *ctx) {
 void QueryConcreteListener::exitQuotedstr(QueryParser::QuotedstrContext *ctx) {
     QNode *node = qNode(QNodeStringValue);
     // TODO memory leak
-    char *result = strdup(ctx->getText().c_str() + 1);
+    //char *result = strdup(ctx->getText().c_str() + 1);
+    char *result = kaStrdup(&orionldState.kalloc, ctx->getText().c_str() + 1);
     result[strlen(result) - 1] = 0;
     node->value.s = result;
     stack.push_back(node);
@@ -263,7 +270,8 @@ void QueryConcreteListener::exitDatetime(QueryParser::DatetimeContext *ctx) {
     } else {
         node = qNode(QNodeStringValue);
         // TODO memory leak
-        node->value.s = strdup(ctx->getText().c_str());
+        //node->value.s = strdup(ctx->getText().c_str());
+        node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
     }
     stack.push_back(node);
 }
@@ -277,7 +285,8 @@ void QueryConcreteListener::exitDate(QueryParser::DateContext *ctx) {
     } else {
         node = qNode(QNodeStringValue);
         // TODO memory leak
-        node->value.s = strdup(ctx->getText().c_str());
+        //node->value.s = strdup(ctx->getText().c_str());
+        node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
     }
     stack.push_back(node);
 }
@@ -285,7 +294,8 @@ void QueryConcreteListener::exitDate(QueryParser::DateContext *ctx) {
 void QueryConcreteListener::exitTime(QueryParser::TimeContext *ctx) {
     QNode *node = qNode(QNodeStringValue);
     // TODO memory leak
-    node->value.s = strdup(ctx->getText().c_str());
+    //node->value.s = strdup(ctx->getText().c_str());
+    node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
     stack.push_back(node);
 }
 
@@ -364,7 +374,8 @@ void QueryConcreteListener::exitValuelist(QueryParser::ValuelistContext *ctx) {
 void QueryConcreteListener::exitUri(QueryParser::UriContext *ctx) {
     QNode *node = qNode(QNodeStringValue);
     // TODO memory leak
-    node->value.s = strdup(ctx->getText().c_str());
+    //node->value.s = strdup(ctx->getText().c_str());
+    node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
     stack.push_back(node);
 }
 
@@ -386,7 +397,8 @@ void QueryConcreteListener::exitRegex(QueryParser::RegexContext *ctx) {
     if (token.length() > 4) {
         string expression = token.substr(3, token.size() - 4); // remove leading 'RE(' and trailing ')'
         QNode *value = qNode(QNodeRegexpValue);
-        value->value.s = strdup(expression.c_str());
+        //value->value.s = strdup(expression.c_str());
+        value->value.s = kaStrdup(&orionldState.kalloc, expression.c_str());
         stack.push_back(value);
     } else {
         isFailed = true;
