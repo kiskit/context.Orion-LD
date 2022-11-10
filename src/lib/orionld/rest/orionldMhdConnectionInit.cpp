@@ -642,6 +642,11 @@ MHD_Result orionldUriArgumentGet(void* cbDataP, MHD_ValueKind kind, const char* 
     orionldState.uriParams.q = (char*) value;
     orionldState.uriParams.mask |= ORIONLD_URIPARAM_Q;
   }
+  else if (strcmp(key, "scopeQ") == 0)
+  {
+    orionldState.uriParams.scopeQ = (char*) value;
+    orionldState.uriParams.mask |= ORIONLD_URIPARAM_SCOPEQ;
+  }
   else if (strcmp(key, "mq") == 0)
   {
     orionldState.uriParams.mq = (char*) value;

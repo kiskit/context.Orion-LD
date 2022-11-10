@@ -59,6 +59,12 @@ extern "C"
 #include "orionld/betterq/QueryConcreteListener.h"
 #include "orionld/betterq/QPrint.h"
 #include <boost/algorithm/string/replace.hpp>
+
+#include "orionld/scopeq/ScopesQ.h"
+#include "orionld/scopeq/ScopesqLexer.h"
+#include "orionld/scopeq/ScopesqParser.h"
+#include "orionld/scopeq/ScopesqConcreteListener.h"
+
 // -----------------------------------------------------------------------------
 //
 // geoCheck -
@@ -137,10 +143,44 @@ public:
     };
 };
 
-static std::string& quoteProtect(std::string& s) {
+static std::string &quoteProtect(std::string &s) {
     boost::replace_all(s, "\"", "\\\"");
     return s;
 }
+
+static ScopesQ *scopeqCheck(const char *scopeString) {
+    std::stringstream stream(scopeString);
+    antlr4::ANTLRInputStream input(stream);
+    ScopesqLexer lexer(&input);
+    lexer.removeErrorListeners();
+    antlr4::CommonTokenStream tokens(&lexer);
+    ScopesqParser parser(&tokens);
+    Ref<antlr4::BailErrorStrategy> strategy(new antlr4::BailErrorStrategy());
+    parser.setErrorHandler(strategy);
+    ScopesqConcreteListener listener;
+    parser.addParseListener(&listener);
+    parser.removeErrorListeners();
+    parser.addErrorListener(&listener);
+    try {
+        parser.scopesq();
+        if (listener.hasFailed()) {
+            const char *error = listener.getErrorMessage().c_str();
+            orionldError(OrionldBadRequestData, "Invalid scope query", error, 400);
+            LM_RE(nullptr, ("Error (qLex: %s: %s)", "invalid scope query", error));
+        }
+        return listener.getScopesq();
+    } catch (antlr4::ParseCancellationException &e) {
+        std::string error = listener.getErrorMessage();
+        if (error.length() == 0) {
+            std::string illegal = parser.getCurrentToken()->getText();
+            error = "illegal <" + quoteProtect(illegal) + "> at index " +
+                    std::to_string(parser.getCurrentToken()->getCharPositionInLine());
+        }
+        orionldError(OrionldBadRequestData, "Invalid scope query", error.c_str(), 400);
+        LM_RE(nullptr, ("Error (qLex: %s: %s)", "invalid scope query", error.c_str()));
+    }
+}
+
 static QNode *qCheck2(const char *qString) {
     std::stringstream stream(qString);
     antlr4::ANTLRInputStream input(stream);
@@ -332,6 +372,7 @@ bool orionldGetEntities(void) {
     char *attrs = orionldState.uriParams.attrs;
     char *geometry = orionldState.uriParams.geometry;
     bool local = orionldState.uriParams.local;
+    char *scopeq = orionldState.uriParams.scopeQ;
 
     if ((id == NULL) && (idPattern == NULL) && (type == NULL) && ((geometry == NULL) || (*geometry == 0)) &&
         (attrs == NULL) && (q == NULL) && (local == false)) {
@@ -375,7 +416,16 @@ bool orionldGetEntities(void) {
             return false;
         std::cout << qPrint(qNode) << std::endl;
     }
-
+    ScopesQ *scq = NULL;
+    if (orionldState.uriParams.scopeQ != NULL) {
+        scq = scopeqCheck(scopeq);
+        if (scq == NULL)
+            return false;
+        bson_t bsonP;
+        bson_init(&bsonP);
+        scq->toBson(&bsonP, nullptr, nullptr);
+        cout << " AS JSON " << bson_as_canonical_extended_json(&bsonP, nullptr) << endl;
+    }
     // (ab|(salut;test)|xy|yz)
     // NodeOr
     // |c->QNodeExists
@@ -399,7 +449,8 @@ bool orionldGetEntities(void) {
                                                 qNode,
                                                 &geoInfo,
                                                 &count,
-                                                geojsonGeometryLongName);
+                                                geojsonGeometryLongName,
+                                                scq);
 
     if (dbEntityArray == NULL)
         return false;

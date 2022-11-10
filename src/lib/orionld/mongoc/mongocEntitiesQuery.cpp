@@ -24,6 +24,7 @@
 */
 #include <bson/bson.h>                                           // bson_t, ...
 #include <mongoc/mongoc.h>                                       // MongoDB C Client Driver
+#include <iostream>
 
 extern "C"
 {
@@ -45,7 +46,7 @@ extern "C"
 #include "orionld/mongoc/mongocKjTreeToBson.h"                   // mongocKjTreeToBson
 #include "orionld/mongoc/mongocKjTreeFromBson.h"                 // mongocKjTreeFromBson
 #include "orionld/mongoc/mongocEntitiesQuery.h"                  // Own interface
-
+#include "orionld/scopeq/ScopesQ.h"
 
 
 // -----------------------------------------------------------------------------
@@ -282,7 +283,21 @@ bool qFilter(bson_t* mongoFilterP, QNode* qNode)
   return true;
 }
 
-
+// -----------------------------------------------------------------------------
+//
+// scopeFilter -
+//
+bool scopeFilter(bson_t* mongoFilter, const ScopesQ* scopesq)
+{
+  char* title;
+  char* detail;
+  if (scopesq->toBson(mongoFilter, &title, &detail) == false)
+  {
+    orionldError(OrionldInternalError, title, detail, 500);
+    return false;
+  }
+  return true;
+}
 
 // -----------------------------------------------------------------------------
 //
@@ -760,7 +775,8 @@ KjNode* mongocEntitiesQuery
   QNode*           qNode,
   OrionldGeoInfo*  geoInfoP,
   int64_t*         countP,
-  const char*      geojsonGeometry
+  const char*      geojsonGeometry,
+  const ScopesQ*   scopesq
 )
 {
   if ((attrList != NULL) && (attrList->items > 99))
@@ -854,6 +870,12 @@ KjNode* mongocEntitiesQuery
     if (qFilter(&mongoFilter, qNode) == false)
       return NULL;
   }
+  // Scope query
+  if (scopesq != NULL) // TODO same in function v2?
+  {
+    if (scopeFilter(&mongoFilter, scopesq) == false)
+        return NULL;
+  }
 
   // GEO Query
   if ((geoInfoP != NULL) && (geoInfoP->geometry != GeoNoGeometry))
@@ -861,6 +883,8 @@ KjNode* mongocEntitiesQuery
     if (geoFilter(&mongoFilter, geoInfoP) == false)
       return NULL;
   }
+
+  cout << "MONGO FILTER: " << bson_as_canonical_extended_json(&mongoFilter, nullptr) << endl;
 
   bson_append_document(&options, "projection", 10, &projection);
   bson_destroy(&projection);

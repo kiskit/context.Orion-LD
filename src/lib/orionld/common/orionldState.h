@@ -129,6 +129,7 @@ typedef struct OrionldUriParams
   int       limit;
   bool      count;
   char*     q;
+  char*     scopeQ;
   char*     mq;
   char*     geometry;
   char*     coordinates;

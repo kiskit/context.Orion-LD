@@ -208,19 +208,26 @@ KjNode* dbModelToApiEntity2(KjNode* dbEntityP, bool sysAttrs, RenderFormat rende
 
   KjNode* idP   = NULL;
   KjNode* typeP = NULL;
+  KjNode* scopeP = NULL;
 
   for (KjNode* nodeP = _idP->value.firstChildP; nodeP != NULL; nodeP = nodeP->next)
   {
     if (strcmp(nodeP->name, "id") == 0)
     {
       idP = nodeP;
-      if (typeP != NULL)  // Both found - we're done!
+      if ((typeP != NULL) && (scopeP != NULL))  // Both found - we're done!
         break;
     }
     else if (strcmp(nodeP->name, "type") == 0)
     {
       typeP = nodeP;
-      if (idP != NULL)  // Both found - we're done!
+      if ((idP != NULL) && (scopeP != NULL)) // Both found - we're done!
+        break;
+    }
+    else if (strcmp(nodeP->name, "scope") == 0)
+    {
+      scopeP = nodeP;
+      if ((idP != NULL) && (typeP != NULL))  // Both found - we're done!
         break;
     }
   }
@@ -249,6 +256,10 @@ KjNode* dbModelToApiEntity2(KjNode* dbEntityP, bool sysAttrs, RenderFormat rende
     typeP->value.s = orionldContextItemAliasLookup(orionldState.contextP, typeP->value.s, NULL, NULL);
   kjChildRemove(_idP, typeP);
   kjChildAdd(entityP, typeP);
+
+  // TODO: maybe not the best method
+  kjChildRemove(_idP, scopeP);
+  kjChildAdd(entityP, scopeP);
 
   //
   // Second "loop" over dbEntityP if sysAttrs == true (normally it's not - this saves time when sysAttrs is not used)

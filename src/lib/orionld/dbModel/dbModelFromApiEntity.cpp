@@ -89,6 +89,7 @@ bool dbModelFromApiEntity(KjNode* entityP, KjNode* dbEntityP, bool creation, con
   const char*  mustGo[]     = { "_id", "id", "@id", "type", "@type", "scope", "createdAt", "modifiedAt", "modDate", "creDate", "servicePath" };
   KjNode*      idP          = NULL;
   KjNode*      typeP        = NULL;
+  KjNode*      scopeP       = NULL;
   KjNode*      dbAttrsP     = NULL;
   KjNode*      dbAttrNamesP = NULL;
 
@@ -109,6 +110,8 @@ bool dbModelFromApiEntity(KjNode* entityP, KjNode* dbEntityP, bool creation, con
         idP = nodeP;
       else if ((ix == 3) || (ix == 4))
         typeP = nodeP;
+      else if (ix == 5)
+        scopeP = nodeP;
     }
   }
 
@@ -225,10 +228,12 @@ bool dbModelFromApiEntity(KjNode* entityP, KjNode* dbEntityP, bool creation, con
     // POST /entities has entity id and type already extracted and in orionldState
     if (idP   == NULL) idP   = kjString(orionldState.kjsonP, "id",   entityId);
     if (typeP == NULL) typeP = kjString(orionldState.kjsonP, "type", entityType);
-
+    // TODO: same if scope is null?
     kjChildAdd(_idP, idP);
     kjChildAdd(_idP, typeP);
     kjChildAdd(_idP, spP);
+    if (scopeP != NULL)
+        kjChildAdd(_idP, scopeP);
 
     // Add "_id" to the beginning of the Entity
     _idP->next = entityP->value.firstChildP;

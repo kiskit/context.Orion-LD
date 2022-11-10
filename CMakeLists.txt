@@ -233,6 +233,7 @@ SET (ORION_LIBS
     orionld_mqtt
     orionld_q
     orionld_betterq
+    orionld_scopeq
     orionld_mongoc       # subCache needs mongoc
     orionld_dbModel
     orionld_common
@@ -373,6 +374,7 @@ if (error EQUAL 0)
   ADD_SUBDIRECTORY(src/lib/orionld/notifications)
   ADD_SUBDIRECTORY(src/lib/orionld/q)
   ADD_SUBDIRECTORY(src/lib/orionld/betterq)
+  ADD_SUBDIRECTORY(src/lib/orionld/scopeq)
   ADD_SUBDIRECTORY(src/lib/orionld/rest)
   ADD_SUBDIRECTORY(src/lib/orionld/serviceRoutines)
   ADD_SUBDIRECTORY(src/lib/orionld/troe)
