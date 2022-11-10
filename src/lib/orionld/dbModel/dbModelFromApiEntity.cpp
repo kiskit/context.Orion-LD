@@ -104,7 +104,8 @@ bool dbModelFromApiEntity(KjNode* entityP, KjNode* dbEntityP, bool creation, con
       continue;
 
     kjChildRemove(entityP, nodeP);
-    if (creation == true)  // Keep id and type, put them inside _id object
+
+    if (creation == true)  // Keep id, type and scope, put them inside _id object
     {
       if ((ix == 1) || (ix == 2))
         idP = nodeP;
@@ -232,8 +233,17 @@ bool dbModelFromApiEntity(KjNode* entityP, KjNode* dbEntityP, bool creation, con
     kjChildAdd(_idP, idP);
     kjChildAdd(_idP, typeP);
     kjChildAdd(_idP, spP);
-    if (scopeP != NULL)
-        kjChildAdd(_idP, scopeP);
+
+    // We correct scope (add leading / if there is none)
+    if (scopeP != NULL) {
+        if (scopeP->value.s[0] == '/')
+            kjChildAdd(_idP, scopeP);
+        else {
+            std::string s = "/";
+            s+= scopeP->value.s;
+            kjChildAdd(_idP, kjString(orionldState.kjsonP, scopeP->name, s.c_str()));
+        }
+    }
 
     // Add "_id" to the beginning of the Entity
     _idP->next = entityP->value.firstChildP;
