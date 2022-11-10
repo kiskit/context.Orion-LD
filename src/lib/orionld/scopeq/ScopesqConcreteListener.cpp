@@ -15,6 +15,7 @@ void ScopesqConcreteListener::enterScopesq(ScopesqParser::ScopesqContext *contex
 }
 
 void ScopesqConcreteListener::exitScopesq(ScopesqParser::ScopesqContext *context) {
+
 }
 
 void ScopesqConcreteListener::exitToplevelwildcard(ScopesqParser::ToplevelwildcardContext *) {
@@ -23,7 +24,6 @@ void ScopesqConcreteListener::exitToplevelwildcard(ScopesqParser::Toplevelwildca
     scope.AddLevel("#");
     orScope.Append(scope);
     scopesq->Append(orScope);
-    cout << "exit top level wildcard" <<endl;
 }
 
 void ScopesqConcreteListener::enterOrscopeq(ScopesqParser::OrscopeqContext *context) {

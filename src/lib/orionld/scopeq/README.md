@@ -4,7 +4,6 @@
 * bson construction could be better but beats me how to do it
 * bson destroy where they are needed
 * a scope given without a leading '/' will be "corrected"
-
 ## Test cases
 
 

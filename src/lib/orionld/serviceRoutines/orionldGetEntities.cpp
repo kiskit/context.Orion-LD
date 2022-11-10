@@ -421,10 +421,6 @@ bool orionldGetEntities(void) {
         scq = scopeqCheck(scopeq);
         if (scq == NULL)
             return false;
-        bson_t bsonP;
-        bson_init(&bsonP);
-        scq->toBson(&bsonP, nullptr, nullptr);
-        cout << " AS JSON " << bson_as_canonical_extended_json(&bsonP, nullptr) << endl;
     }
     // (ab|(salut;test)|xy|yz)
     // NodeOr

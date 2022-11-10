@@ -1,8 +1,8 @@
 grammar Scopesq;
 
 // Parser
-scopesq : orscopeq (OROP orscopeq)* EOF                             // OrScopeQ *(orOp OrScopeQ)
-    | toplevelwildcard EOF                                          // %x2F %23
+scopesq : '"' orscopeq (OROP orscopeq)* '"' EOF                             // OrScopeQ *(orOp OrScopeQ)
+    | '"' toplevelwildcard '"' EOF                                          // %x2F %23
     ;
 toplevelwildcard: SCOPESEPARATOR SCOPEHIERARCHYWILDCARD
     ;
