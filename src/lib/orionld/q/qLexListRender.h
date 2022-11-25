@@ -33,6 +33,7 @@
 //
 // qLexListRender -
 //
+extern char* qLexListRender2(QNode* qListP, bool* validInV2P, bool* isMqP);
 extern char* qLexListRender(QNode* qListP, bool* validInV2P, bool* isMqP);
 
 #endif  // SRC_LIB_ORIONLD_Q_QLEXLISTRENDER_H_

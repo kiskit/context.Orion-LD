@@ -133,15 +133,6 @@ public:
   virtual void enterNumber(QueryParser::NumberContext * /*ctx*/) override { }
   virtual void exitNumber(QueryParser::NumberContext * /*ctx*/) override { }
 
-  virtual void enterFrac(QueryParser::FracContext * /*ctx*/) override { }
-  virtual void exitFrac(QueryParser::FracContext * /*ctx*/) override { }
-
-  virtual void enterQint(QueryParser::QintContext * /*ctx*/) override { }
-  virtual void exitQint(QueryParser::QintContext * /*ctx*/) override { }
-
-  virtual void enterAnydigit(QueryParser::AnydigitContext * /*ctx*/) override { }
-  virtual void exitAnydigit(QueryParser::AnydigitContext * /*ctx*/) override { }
-
   virtual void enterOpeningpar(QueryParser::OpeningparContext * /*ctx*/) override { }
   virtual void exitOpeningpar(QueryParser::OpeningparContext * /*ctx*/) override { }
 

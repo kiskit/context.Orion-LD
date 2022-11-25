@@ -29,10 +29,12 @@ extern "C"
 #include "kjson/kjBuilder.h"                                     // kjChildRemove
 }
 
+#include <iostream>
 #include "logMsg/logMsg.h"                                       // LM_*
 
 #include "orionld/q/QNode.h"                                     // QNode
 #include "orionld/q/qBuild.h"                                    // qBuild
+#include "orionld/betterq/QBuilder.h"                            // qBuild
 #include "orionld/payloadCheck/PCHECK.h"                         // PCHECK_*
 #include "orionld/payloadCheck/fieldPaths.h"                     // Paths to fields in the payload, e.g. subscriptionNotification = Subscription::notification"
 #include "orionld/payloadCheck/pcheckEntityInfoArray.h"          // pcheckEntityInfoArray
@@ -41,7 +43,47 @@ extern "C"
 #include "orionld/payloadCheck/pCheckStringArray.h"              // pCheckStringArray
 #include "orionld/payloadCheck/pCheckSubscription.h"             // Own interface
 
-
+// -----------------------------------------------------------------------------
+//
+// remove \ character in case the string had any for protection (of \ or ")
+void unescape(char * s) {
+    char* copyCursor = s, * currentCursor = s;
+    for (; *currentCursor != 0; ++currentCursor) {
+        if (*currentCursor == '\\') {
+            if (currentCursor != copyCursor) {
+                if (*copyCursor == '\\') {
+                    copyCursor++; // we got a backslash
+                    *currentCursor = 0; // remove escaped \ char
+                } else {
+                    *copyCursor = '\\'; // copy the \\ and do not advance
+                }
+            } else {
+                // first \, do not move copyCursor
+            }
+        } else {
+            *(copyCursor++) = *currentCursor; // we got another escaped char, in which case just copy it, or a non escaped char, in which case copy it
+        }
+    }
+    *copyCursor = 0;
+}
+/*
+void testUnescape() {
+    char buf[512];
+    char* testSet[] = {
+            "a\\\"b","a\"b", // escape one quote
+            "a\\\"\\\"b\\\"a","a\"\"b\"a", // escape more than one quote
+         "a\\\\\\b","a\\b", // last \ protecting b
+         "a\\\\\\\\b","a\\\\b", // escape only \ char
+         "a\\","a", // one \ char too many
+         "a\\\\\\","a\\" // one \ char too many
+    };
+    for (size_t i = 0; i < sizeof(testSet); i+=2) {
+        strcpy(buf, testSet[i]);
+        unprotect(buf);
+        std::cout << "Testing:" << testSet[i]<< std::endl;
+        assert(strcmp(buf, testSet[i+1]) == 0);
+    }
+}*/
 
 // -----------------------------------------------------------------------------
 //
@@ -188,11 +230,21 @@ bool pCheckSubscription
       PCHECK_STRING(qP, 0, NULL, SubscriptionQPath, 400);
 
       *qTreeP = qBuild(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
+      //QBuilder qBuilder;
+      //std::cout << qP->value.s << std::endl;
+      //unescape(qP->value.s);
+      //*qTreeP = qBuilder.Build(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
       *qNodeP = qP;
 
       if (*qTreeP == NULL)
         LM_RE(false, ("qBuild failed"));
     }
+    /*else if (strcmp(subItemP->name, "scopesQ") == 0){
+      PCHECK_DUPLICATE(qP, subItemP, 0, NULL, SubscriptionScopePath, 400);
+      *scopesQ = ScopesQBuilder::scopesQBuild(*scopesQText);
+      if (*scopesQ == NULL)
+        LM_RE(false, ("qBuild failed"));
+    }*/
     else if (strcmp(subItemP->name, "geoQ") == 0)
     {
       PCHECK_OBJECT(subItemP, 0, NULL, SubscriptionGeoqPath, 400);

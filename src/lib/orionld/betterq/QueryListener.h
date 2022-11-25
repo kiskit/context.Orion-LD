@@ -131,15 +131,6 @@ public:
   virtual void enterNumber(QueryParser::NumberContext *ctx) = 0;
   virtual void exitNumber(QueryParser::NumberContext *ctx) = 0;
 
-  virtual void enterFrac(QueryParser::FracContext *ctx) = 0;
-  virtual void exitFrac(QueryParser::FracContext *ctx) = 0;
-
-  virtual void enterQint(QueryParser::QintContext *ctx) = 0;
-  virtual void exitQint(QueryParser::QintContext *ctx) = 0;
-
-  virtual void enterAnydigit(QueryParser::AnydigitContext *ctx) = 0;
-  virtual void exitAnydigit(QueryParser::AnydigitContext *ctx) = 0;
-
   virtual void enterOpeningpar(QueryParser::OpeningparContext *ctx) = 0;
   virtual void exitOpeningpar(QueryParser::OpeningparContext *ctx) = 0;
 

@@ -116,19 +116,7 @@ date: DATE
 time: TIME
     ;
 
-// IETF 8259 section 6
-number : (MINUS)? qint (frac)? (EXP)? // = [ minus ] int [ frac ] [ exp ]
-    ;
-
-frac: DOT (anydigit)+      // frac = decimal-point 1*DIGIT
-    ;
-qint: ZERO
-    | NONZERODIGIT (anydigit)*
-    ;
-
-// END IETF 8259 section 6
-
-anydigit: (ZERO | NONZERODIGIT)+
+number: NUMBER
     ;
 
 // necessary for querytermassoc in the listener so that it does not consume query's logic
@@ -139,6 +127,17 @@ closingpar: CLOSINGPAR
 //
 // Lexer
 
+// IETF 8259 section 6
+NUMBER : (MINUS)? QINT (FRAC)? (EXP)? // = [ minus ] int [ frac ] [ exp ]
+    ;
+FRAC: DOT (ANYDIGIT)+      // frac = decimal-point 1*DIGIT
+    ;
+QINT: ZERO
+    | NONZERODIGIT (ANYDIGIT)*
+    ;
+// END IETF 8259 section 6
+
+ANYDIGIT: (ZERO | NONZERODIGIT)+;
 DOTS: '..';
 DOT: '.';
 FALSE: 'false';

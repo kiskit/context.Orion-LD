@@ -75,12 +75,155 @@ const char* regexToString(QNode* qItemP, char* buf, int bufLen)
   return "REGEX";
 }
 
+char* addToBuf(const char * toAdd, char* addTo) {
+    int len = strlen (toAdd);
+    strncpy(addTo, toAdd, len);
+    return &(addTo[len]);
+}
 
+bool requiresParenthesis(QNode* parent, QNode* child) {
+    return (((parent->type == QNodeOr) || (parent->type == QNodeAnd)) &&
+            ((child->type == QNodeOr) || (child->type == QNodeAnd)) &&
+            (parent->type != child->type));
+}
+
+// Does it after parsing
+char* qLexListRenderRec(QNode* qListP, bool* validInV2P, bool* isMqP, char* buf, bool requiresPar) {
+    char* bufP;
+    char staticBuf[512];
+    bool isLeaf  = false;
+    switch (qListP->type)
+    {
+        // these two don't exist anymore after parsing
+        case QNodeOpen:
+        case QNodeClose:
+        case QNodeVoid:         bufP = NULL;                                 break;
+        // Multi operand operators (could work for bi operand)
+        case QNodeOr:
+            bufP = (char*) "|";
+            *validInV2P = false;
+            isLeaf = false;
+            break;
+        case QNodeAnd:
+            bufP = (char*) ";";
+            isLeaf = false;
+            break;
+        case QNodeComma:
+            bufP = (char*) ",";
+            isLeaf = false;
+            break;
+        case QNodeExists:       bufP = NULL;
+            bufP = qListP->value.children->value.s;
+            isLeaf = true;
+            break;
+        case QNodeNotExists:    bufP = (char*) "!";
+            isLeaf = false;
+            break;
+        // bi-operand operators
+        case QNodeRange:        bufP = (char*) "..";
+            isLeaf = false;
+            break;
+        case QNodeGT:           bufP = (char*) ">";
+            isLeaf = false;
+            break;
+        case QNodeLT:           bufP = (char*) "<";
+            isLeaf = false;
+            break;
+        case QNodeEQ:           bufP = (char*) "==";
+            isLeaf = false;
+            break;
+        case QNodeNE:           bufP = (char*) "!=";
+            isLeaf = false;
+            break;
+        case QNodeGE:           bufP = (char*) ">=";
+            isLeaf = false;
+            break;
+        case QNodeLE:           bufP = (char*) "<=";
+            isLeaf = false;
+            break;
+        case QNodeMatch:        bufP = (char*) "~=";
+            isLeaf = false;
+            break;
+        case QNodeNoMatch:      bufP = (char*) "!~=";
+            isLeaf = false;
+            break;
+        // Leaves
+        case QNodeIntegerValue: intToString(qListP, staticBuf, sizeof(staticBuf));
+            bufP = staticBuf;
+            isLeaf = true;
+            break;
+        case QNodeFloatValue:   floatToString(qListP, staticBuf, sizeof(staticBuf));
+            bufP = staticBuf;
+            isLeaf = true;
+            break;
+        case QNodeRegexpValue:
+            regexToString(qListP, staticBuf, sizeof(staticBuf));
+            *validInV2P = false;
+            bufP = staticBuf;
+            isLeaf = true;
+            break;
+        case QNodeStringValue:
+            sprintf(staticBuf, "\"%s\"",qListP->value.s);
+            bufP = staticBuf;
+            isLeaf = true;
+            break;
+        case QNodeTrueValue:    bufP = (char*) "true";
+            isLeaf = true;
+            break;
+        case QNodeFalseValue:   bufP = (char *) "false";
+            isLeaf = true;
+            break;
+        case QNodeVariable:
+            char* detail;
+            // bufP = qVariableFix(qListP->value.v, false, isMqP, reinterpret_cast<char **>(&detail));
+
+            /*
+            if (bufP == NULL)
+            {
+                orionldError(OrionldInternalError, "qVariableFix failed", detail, 500);
+                return NULL;
+            }
+            */
+            bufP = qListP->value.v;
+            isLeaf = true;
+            break;
+    }
+    if (bufP != NULL) {
+        if (isLeaf) {
+            buf = addToBuf(bufP, buf);
+        } else {
+
+            if (requiresPar) {
+                buf = addToBuf("(", buf);
+            }
+            for (auto child = qListP->value.children; child != NULL; child = child->next) {
+                bool par = requiresParenthesis(qListP, child); // will child require parenthesis
+                buf = qLexListRenderRec(child, validInV2P, isMqP, buf, par);
+                if (child->next != NULL) {
+                    buf = addToBuf(bufP, buf);
+                }
+            }
+            if (requiresPar) {
+                buf = addToBuf(")", buf);
+            }
+        }
+    }
+    return buf;
+}
+
+char* qLexListRender2(QNode* qListP, bool* validInV2P, bool* isMqP){
+    int    outSize = 512;
+    char*  outP    = kaAlloc(&orionldState.kalloc, outSize);  // kaRealloc if needed
+    char*  outPSave = outP;
+    qLexListRenderRec(qListP, validInV2P, isMqP, outP, false);
+    return outPSave;
+}
 
 // -----------------------------------------------------------------------------
 //
 // qLexListRender -
 //
+
 char* qLexListRender(QNode* qListP, bool* validInV2P, bool* isMqP)
 {
   int    outSize = 512;

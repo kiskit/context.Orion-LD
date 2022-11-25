@@ -12,13 +12,14 @@
 class  QueryParser : public antlr4::Parser {
 public:
   enum {
-    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, DOTS = 5, DOT = 6, FALSE = 7, 
-    TRUE = 8, EQUAL = 9, UNEQUAL = 10, GREATEREQ = 11, GREATER = 12, LESSEQ = 13, 
-    LESS = 14, EXP = 15, DOTTEDATTRNAME = 16, ATTRNAME = 17, QUOTE = 18, 
-    ZERO = 19, NONZERODIGIT = 20, PLUS = 21, MINUS = 22, OROP = 23, ANDOP = 24, 
-    DATE = 25, TIME = 26, DATETIME = 27, URI = 28, SCHEME = 29, URICHAR = 30, 
-    PATTERNOP = 31, PATTERNNOOP = 32, OPENINGPAR = 33, CLOSINGPAR = 34, 
-    ESCAPEDBACKSLASH = 35, BACKSLASH = 36, OTHERLEXEDCHAR = 37, UNICODE = 38
+    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, NUMBER = 5, FRAC = 6, QINT = 7, 
+    ANYDIGIT = 8, DOTS = 9, DOT = 10, FALSE = 11, TRUE = 12, EQUAL = 13, 
+    UNEQUAL = 14, GREATEREQ = 15, GREATER = 16, LESSEQ = 17, LESS = 18, 
+    EXP = 19, DOTTEDATTRNAME = 20, ATTRNAME = 21, QUOTE = 22, ZERO = 23, 
+    NONZERODIGIT = 24, PLUS = 25, MINUS = 26, OROP = 27, ANDOP = 28, DATE = 29, 
+    TIME = 30, DATETIME = 31, URI = 32, SCHEME = 33, URICHAR = 34, PATTERNOP = 35, 
+    PATTERNNOOP = 36, OPENINGPAR = 37, CLOSINGPAR = 38, ESCAPEDBACKSLASH = 39, 
+    BACKSLASH = 40, OTHERLEXEDCHAR = 41, UNICODE = 42
   };
 
   enum {
@@ -31,8 +32,8 @@ public:
     RuleCompequalityvalue = 23, RuleUri = 24, RuleLogicalop = 25, RuleOrop = 26, 
     RuleAndop = 27, RuleComparablevalue = 28, RuleQuotedstr = 29, RuleNotaquote = 30, 
     RuleQuotedstringchar = 31, RuleRegex = 32, RuleRegexchar = 33, RuleNotaparenthesis = 34, 
-    RuleDatetime = 35, RuleDate = 36, RuleTime = 37, RuleNumber = 38, RuleFrac = 39, 
-    RuleQint = 40, RuleAnydigit = 41, RuleOpeningpar = 42, RuleClosingpar = 43
+    RuleDatetime = 35, RuleDate = 36, RuleTime = 37, RuleNumber = 38, RuleOpeningpar = 39, 
+    RuleClosingpar = 40
   };
 
   explicit QueryParser(antlr4::TokenStream *input);
@@ -84,9 +85,6 @@ public:
   class DateContext;
   class TimeContext;
   class NumberContext;
-  class FracContext;
-  class QintContext;
-  class AnydigitContext;
   class OpeningparContext;
   class ClosingparContext; 
 
@@ -644,10 +642,7 @@ public:
   public:
     NumberContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    QintContext *qint();
-    antlr4::tree::TerminalNode *MINUS();
-    FracContext *frac();
-    antlr4::tree::TerminalNode *EXP();
+    antlr4::tree::TerminalNode *NUMBER();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -655,53 +650,6 @@ public:
   };
 
   NumberContext* number();
-
-  class  FracContext : public antlr4::ParserRuleContext {
-  public:
-    FracContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *DOT();
-    std::vector<AnydigitContext *> anydigit();
-    AnydigitContext* anydigit(size_t i);
-
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-   
-  };
-
-  FracContext* frac();
-
-  class  QintContext : public antlr4::ParserRuleContext {
-  public:
-    QintContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *ZERO();
-    antlr4::tree::TerminalNode *NONZERODIGIT();
-    std::vector<AnydigitContext *> anydigit();
-    AnydigitContext* anydigit(size_t i);
-
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-   
-  };
-
-  QintContext* qint();
-
-  class  AnydigitContext : public antlr4::ParserRuleContext {
-  public:
-    AnydigitContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    std::vector<antlr4::tree::TerminalNode *> ZERO();
-    antlr4::tree::TerminalNode* ZERO(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> NONZERODIGIT();
-    antlr4::tree::TerminalNode* NONZERODIGIT(size_t i);
-
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-   
-  };
-
-  AnydigitContext* anydigit();
 
   class  OpeningparContext : public antlr4::ParserRuleContext {
   public:

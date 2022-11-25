@@ -24,6 +24,7 @@
 */
 #include <string.h>                                            // strlen, strncpy, strdup
 #include <stdlib.h>                                            // free
+#include <iostream>
 
 #include "logMsg/logMsg.h"                                     // LM_*
 
@@ -97,7 +98,9 @@ QNode* qBuild(const char* q, char** qRenderP, bool* v2ValidP, bool* isMqP, bool 
     {
       // NOTE: qLexListRender MUST NOT destroy the qList!!!
       *qRenderP = qLexListRender(qList, v2ValidP, isMqP);
-      if (*qRenderP == NULL)
+      std::cout << "Once rendered: " << *qRenderP << std::endl;
+
+        if (*qRenderP == NULL)
       {
         // qLexListRender prepares orionldError
         return NULL;

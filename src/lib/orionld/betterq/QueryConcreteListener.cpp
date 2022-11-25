@@ -11,7 +11,7 @@
 
 extern "C"
 {
-    #include "kalloc/kaStrdup.h"                                // kaStrdup
+#include "kalloc/kaStrdup.h"                                // kaStrdup
 }
 
 /* this class is both the listener and the error listener for the query grammar.
@@ -207,7 +207,17 @@ void QueryConcreteListener::exitAttribute(QueryParser::AttributeContext *ctx) {
     // TODO memory leak on strdup
     if (qToDbModel) {
         //node->value.s = qVariableFix(strdup(ctx->getText().c_str()), forDB, &isMd, &detailsP);
-        node->value.s = qVariableFix(kaStrdup(&orionldState.kalloc, ctx->getText().c_str()), forDB, &isMd, &detailsP);
+        if (orionldState.useMalloc) {
+            cout << "Malloc-ing " << ctx->getText().c_str() << endl;
+            //char *dup = strdup(ctx->getText().c_str());
+            //node->value.s = qVariableFix(dup, forDB, &isMd, &detailsP);
+            // TODO Pretty ugly
+            node->value.s = strdup(qVariableFix(const_cast<char *>(ctx->getText().c_str()), forDB, &isMd, &detailsP));
+        } else {
+            cout << "kalloc-ing " << ctx->getText().c_str() << endl;
+            node->value.s = qVariableFix(kaStrdup(&orionldState.kalloc, ctx->getText().c_str()), forDB, &isMd,
+                                         &detailsP);
+        }
     }
     stack.push_back(node);
 }
@@ -255,8 +265,14 @@ void QueryConcreteListener::exitAndop(QueryParser::AndopContext *ctx) {
 void QueryConcreteListener::exitQuotedstr(QueryParser::QuotedstrContext *ctx) {
     QNode *node = qNode(QNodeStringValue);
     // TODO memory leak
-    //char *result = strdup(ctx->getText().c_str() + 1);
-    char *result = kaStrdup(&orionldState.kalloc, ctx->getText().c_str() + 1);
+    char *result;
+    if (orionldState.useMalloc) {
+        cout << "Malloc-ing " << ctx->getText().c_str() + 1 << endl;
+        result = strdup(ctx->getText().c_str() + 1);
+    } else {
+        cout << "kalloc-ing " << ctx->getText().c_str() + 1 << endl;
+        result = kaStrdup(&orionldState.kalloc, ctx->getText().c_str() + 1);
+    }
     result[strlen(result) - 1] = 0;
     node->value.s = result;
     stack.push_back(node);
@@ -270,8 +286,11 @@ void QueryConcreteListener::exitDatetime(QueryParser::DatetimeContext *ctx) {
     } else {
         node = qNode(QNodeStringValue);
         // TODO memory leak
-        //node->value.s = strdup(ctx->getText().c_str());
-        node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
+        if (orionldState.useMalloc) {
+            node->value.s = strdup(ctx->getText().c_str());
+        } else {
+            node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
+        }
     }
     stack.push_back(node);
 }
@@ -285,8 +304,11 @@ void QueryConcreteListener::exitDate(QueryParser::DateContext *ctx) {
     } else {
         node = qNode(QNodeStringValue);
         // TODO memory leak
-        //node->value.s = strdup(ctx->getText().c_str());
-        node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
+        if (orionldState.useMalloc) {
+            node->value.s = strdup(ctx->getText().c_str());
+        } else {
+            node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
+        }
     }
     stack.push_back(node);
 }
@@ -294,8 +316,11 @@ void QueryConcreteListener::exitDate(QueryParser::DateContext *ctx) {
 void QueryConcreteListener::exitTime(QueryParser::TimeContext *ctx) {
     QNode *node = qNode(QNodeStringValue);
     // TODO memory leak
-    //node->value.s = strdup(ctx->getText().c_str());
-    node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
+    if (orionldState.useMalloc) {
+        node->value.s = strdup(ctx->getText().c_str());
+    } else {
+        node->value.s = kaStrdup(&orionldState.kalloc, ctx->getText().c_str());
+    }
     stack.push_back(node);
 }
 

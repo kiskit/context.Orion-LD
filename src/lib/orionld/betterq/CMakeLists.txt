@@ -9,6 +9,7 @@ SET(SOURCES
     QueryLexer.cpp
     QueryListener.cpp
     QueryParser.cpp
+    QBuilder.cpp
         QPrint.cpp)
 
 include_directories("${PROJECT_SOURCE_DIR}/src/lib")

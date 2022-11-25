@@ -58,6 +58,7 @@ extern "C"
 #include "orionld/betterq/QueryParser.h"
 #include "orionld/betterq/QueryConcreteListener.h"
 #include "orionld/betterq/QPrint.h"
+#include "orionld/common/quoteProtect.h"
 #include <boost/algorithm/string/replace.hpp>
 // -----------------------------------------------------------------------------
 //
@@ -136,11 +137,6 @@ public:
         throw antlr4::ParseCancellationException("in lexer");
     };
 };
-
-static std::string& quoteProtect(std::string& s) {
-    boost::replace_all(s, "\"", "\\\"");
-    return s;
-}
 static QNode *qCheck2(const char *qString) {
     std::stringstream stream(qString);
     antlr4::ANTLRInputStream input(stream);

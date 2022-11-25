@@ -65,6 +65,7 @@ SET (SOURCES
     batchUpdateEntity.cpp
     batchReplaceEntity.cpp
     metadataAdd.cpp
+    quoteProtect.cpp
 )
 
 # Include directories

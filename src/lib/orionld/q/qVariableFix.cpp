@@ -49,7 +49,7 @@ extern "C"
 //
 // After implementing expansion in metadata names, for attr.b.c, 'b' needs expansion also
 //
-char* qVariableFix(char* varPathIn, bool forDb, bool* isMdP, char** detailsP)
+char* qVariableFix(const char* varPathIn, bool forDb, bool* isMdP, char** detailsP)
 {
   char  varPath[1024];  // Can't destroy varPathIn - need to copy it
 

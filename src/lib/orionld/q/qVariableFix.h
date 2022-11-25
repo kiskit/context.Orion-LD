@@ -39,6 +39,6 @@
 //
 // After implementing expansion in metadata names, for attr.b.c, 'b' needs expansion also
 //
-extern char* qVariableFix(char* varPathIn, bool forDb, bool* isMdP, char** detailsP);
+extern char* qVariableFix(const char* varPathIn, bool forDb, bool* isMdP, char** detailsP);
 
 #endif  // SRC_LIB_ORIONLD_Q_QVARIABLEFIX_H_

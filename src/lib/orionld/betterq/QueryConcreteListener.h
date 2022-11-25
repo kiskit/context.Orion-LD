@@ -4,7 +4,7 @@
 
 #include "QueryParser.h"
 #include "QueryBaseListener.h"
-#include "context.Orion-LD/src/lib/orionld/q/QNode.h"
+#include "orionld/q/QNode.h"
 
 /* This class acts as both a listener and an error listener
  * */
