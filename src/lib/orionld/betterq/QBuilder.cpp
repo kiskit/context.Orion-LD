@@ -28,7 +28,7 @@ QNode *QBuilder::Build(const char *q, char **qRenderP, bool *v2ValidP, bool *isM
     QueryParser parser(&tokens);
     Ref<antlr4::BailErrorStrategy> strategy(new antlr4::BailErrorStrategy());
     parser.setErrorHandler(strategy);
-    QueryConcreteListener listener(true, qToDbModel, true);
+    QueryConcreteListener listener(false, qToDbModel, true);
     parser.addParseListener(&listener);
     parser.removeErrorListeners();
     parser.addErrorListener(&listener);

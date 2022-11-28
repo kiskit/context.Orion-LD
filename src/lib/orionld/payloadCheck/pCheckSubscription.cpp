@@ -229,12 +229,12 @@ bool pCheckSubscription
       PCHECK_DUPLICATE(qP, subItemP, 0, NULL, SubscriptionQPath, 400);
       PCHECK_STRING(qP, 0, NULL, SubscriptionQPath, 400);
 
-      *qTreeP = qBuild(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
-      //QBuilder qBuilder;
-      //std::cout << qP->value.s << std::endl;
-      //unescape(qP->value.s);
-      //*qTreeP = qBuilder.Build(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
-      *qNodeP = qP;
+     //*qTreeP = qBuild(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
+      QBuilder qBuilder;
+      std::cout << qP->value.s << std::endl;
+      unescape(qP->value.s);
+      *qTreeP = qBuilder.Build(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
+     *qNodeP = qP;
 
       if (*qTreeP == NULL)
         LM_RE(false, ("qBuild failed"));
