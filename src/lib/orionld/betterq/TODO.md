@@ -1,5 +1,4 @@
 ## MUST
-* Implement in qBuild
 * Fix memory leaks (should be done, but cases may remain pointed out)
 * Clean q vs betterq (requires to pick whatever is needed in q, put it in betterq, remove q, rename betterq), replace qCheck by qCheck2
 * Check qVariableFix stuff. The grammar takes responsibility for part of it (brackets count) but we could probably do it in the parsing (e.g. append .value to first level and such). The grammar/parser can probably be made to understand the different cases.
