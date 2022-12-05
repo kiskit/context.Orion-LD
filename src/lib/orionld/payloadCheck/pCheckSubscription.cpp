@@ -231,7 +231,6 @@ bool pCheckSubscription
 
      //*qTreeP = qBuild(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
       QBuilder qBuilder;
-      std::cout << qP->value.s << std::endl;
       unescape(qP->value.s);
       *qTreeP = qBuilder.Build(qP->value.s, qTextP, qValidForV2P, qIsMqP, true);  // 5th parameter: qToDbModel == true
      *qNodeP = qP;
